@@ -1,9 +1,24 @@
 import dynamic from "next/dynamic";
 import photographyJson from "@/data/photography.json";
-import type { PhotographyJson } from "@/components/PhotographyPage";
+
+/* mismo tipo local */
+interface PhotoItem {
+  id: number | "intro";
+  title: string;
+  subtitle?: string;
+  body?: string;
+  category: string;
+  slug: string;
+  imageThumb?: string;
+  imageFull?: string;
+}
+interface PhotographyJson {
+  intro: PhotoItem;
+  articles: PhotoItem[];
+}
 
 const PhotographyPage = dynamic(() => import("@/components/PhotographyPage"), {
-  ssr: false, // prevents hydration warnings due to <img>
+  ssr: false, // evita hydration warnings por <img>
 });
 
 export default function PhotographyIndex() {
