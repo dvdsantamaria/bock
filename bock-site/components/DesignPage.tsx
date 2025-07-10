@@ -111,8 +111,10 @@ export default function DesignPage() {
       : intro;
 
   /* —— aside / related —— */
-  const related = articles.filter((a) => a.slug !== active.slug);
-
+  const related =
+    "slug" in active
+      ? articles.filter((a) => a.slug !== active.slug)
+      : articles;
   /* ─────────── render ─────────── */
   return (
     <>
