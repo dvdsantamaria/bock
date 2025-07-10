@@ -1,35 +1,35 @@
 import { useRouter } from "next/router";
 import writingJson from "@/data/writing.json";
-import WritingPage, { WritingJson, Writing } from "@/components/WritingPage";
+import dynamic from "next/dynamic";
+
+/* carga diferida del componente */
+const WritingPage = dynamic(() => import("@/components/WritingPage"), {
+  ssr: false,
+}) as any; //  ←  ⬅️ cast a any para aceptar props
 
 export default function WritingCategoryIndex() {
   const router = useRouter();
   const { category } = router.query as { category?: string };
 
-  const { intro, articles } = writingJson as unknown as WritingJson;
+  if (!category) return null; // aún sin SSR de esta ruta
 
-  if (!category) return null; // loading SSR
+  const { intro, articles } = writingJson as any;
 
-  /* cover dinámico por categoría */
-  const cover: Writing = {
-    id: `cover-${category}`,
-    title: category[0].toUpperCase() + category.slice(1),
-    subtitle: `All articles tagged “${category}”`,
-    body: "Seleccione un artículo de la lista de la derecha o del desplegable móvil.",
-    category,
-    slug: "cover",
-  };
+  const firstInCat =
+    articles.find((a: any) => a.category === category) ?? intro;
 
   const related = articles
-    .filter((a) => a.category === category)
-    .map((a) => ({ label: a.title, href: `/writing/${a.category}/${a.slug}` }));
+    .filter((a: any) => a.category === category && a.slug !== firstInCat.slug)
+    .map((a: any) => ({
+      label: a.title,
+      href: `/writing/${a.category}/${a.slug}`,
+    }));
 
-  const categories = Array.from(new Set(articles.map((a) => a.category)));
+  const categories = Array.from(new Set(articles.map((a: any) => a.category)));
 
   return (
     <WritingPage
-      json={writingJson as any}
-      active={cover}
+      active={firstInCat}
       related={related}
       categories={categories}
     />
