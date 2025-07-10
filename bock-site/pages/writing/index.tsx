@@ -1,24 +1,22 @@
+import dynamic from "next/dynamic";
 import writingJson from "@/data/writing.json";
-import WritingPage, { Writing, WritingJson } from "@/components/WritingPage";
 
-/* ── destruc. JSON ── */
-const { intro, articles } = writingJson as unknown as WritingJson;
+/* dynamic import con cast */
+const WritingPage = dynamic(() => import("@/components/WritingPage"), {
+  ssr: false,
+}) as any;
 
 export default function WritingIndex() {
-  /* related = todos los artículos */
-  const related = articles.map((w) => ({
-    label: w.title,
-    href: `/writing/${w.category}/${w.slug}`,
+  const { intro, articles } = writingJson as any;
+
+  const related = articles.map((a: any) => ({
+    label: a.title,
+    href: `/writing/${a.category}/${a.slug}`,
   }));
 
-  const categories = Array.from(new Set(articles.map((a) => a.category)));
+  const categories = Array.from(new Set(articles.map((a: any) => a.category)));
 
   return (
-    <WritingPage
-      json={writingJson as any}
-      active={intro}
-      related={related}
-      categories={categories}
-    />
+    <WritingPage active={intro} related={related} categories={categories} />
   );
 }
