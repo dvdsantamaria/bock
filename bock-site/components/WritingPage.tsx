@@ -12,16 +12,18 @@ interface Article {
   id: number;
   title: string;
   subtitle?: string;
-  body: any; // string o array Slate
+  body: any;
   slug: string;
   category: string;
 }
 
 interface Intro {
+  id: "intro";
   title: string;
   subtitle?: string;
   body: any;
   slug: string;
+  category: "intro";
 }
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
@@ -36,41 +38,44 @@ const theme = {
   sectionColor: "#808080",
 };
 
-/* ---------- helpers ---------- */
+/* ---------- helper ---------- */
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 export default function WritingPage() {
-  const { query } = useRouter();
-  const { category, slug } = query as { category?: string; slug?: string };
+  const { category, slug } = useRouter().query as {
+    category?: string;
+    slug?: string;
+  };
 
   const [intro, setIntro] = useState<Intro | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* ----- fetch Strapi ----- */
+  /* fetch Strapi */
   useEffect(() => {
-    const fetchData = async () => {
+    (async () => {
       try {
-        /* intro (single-type) */
-        const introRes = await fetch(`${API}/api/writing-intro`);
-        const introRaw = (await introRes.json()).data;
+        const introRaw = (
+          await (await fetch(`${API}/api/writing-intro`)).json()
+        ).data;
         setIntro({
           id: "intro",
-          title: introRaw.name || introRaw.title, // ← aquí
+          title: introRaw.name || introRaw.title,
           subtitle: introRaw.subtitle,
           body: introRaw.content || introRaw.body,
           category: "intro",
           slug: introRaw.slug,
         });
 
-        /* artículos (collection) */
-        const artRes = await fetch(
-          `${API}/api/writings?populate=*&pagination[pageSize]=100`
-        );
-        const artData = (await artRes.json()).data as any[];
-
+        const artRaw = (
+          await (
+            await fetch(
+              `${API}/api/writings?populate=*&pagination[pageSize]=100`
+            )
+          ).json()
+        ).data;
         setArticles(
-          artData.map((it) => ({
+          artRaw.map((it: any) => ({
             id: it.id,
             title: it.title,
             subtitle: it.subtitle,
@@ -84,12 +89,10 @@ export default function WritingPage() {
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchData();
+    })();
   }, []);
 
-  /* ----- custom props (tema) ----- */
+  /* tema → custom-props */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -101,12 +104,12 @@ export default function WritingPage() {
 
   if (loading || !intro) return <div className="p-10">Loading…</div>;
 
-  /* ----- cuál es el activo según ruta ----- */
+  /* util */
   const byCategory = (cat: string) =>
     articles.filter((a) => a.category === cat);
 
-  let active: Intro | Article;
-
+  /* decide activo */
+  let active: Intro | Article = intro;
   if (slug && category) {
     active =
       byCategory(category).find((a) => a.slug === slug) ??
@@ -114,11 +117,9 @@ export default function WritingPage() {
       intro;
   } else if (category) {
     active = byCategory(category)[0] ?? intro;
-  } else {
-    active = intro;
   }
 
-  /* ----- related (misma categoría) ----- */
+  /* related */
   const related =
     active === intro
       ? articles
@@ -144,19 +145,14 @@ export default function WritingPage() {
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={(active as any).slug ?? "intro"}
+            key={"slug" in active ? active.slug : "intro"}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
-            style={{
-              ["--menu-text" as any]: theme.menuText,
-              ["--accent" as any]: theme.accent,
-              ["--section-color" as any]: theme.sectionColor,
-            }}
           >
-            {/* ─ mobile dropdown ─ */}
+            {/* dropdown móvil */}
             {related.length > 0 && (
               <div className="col-span-8 md:hidden px-4 pt-4">
                 <details className="border border-gray-300 rounded-md bg-white">
@@ -179,7 +175,7 @@ export default function WritingPage() {
               </div>
             )}
 
-            {/* ─ artículo principal ─ */}
+            {/* artículo principal */}
             <article
               className="
                 col-start-1 col-span-8
@@ -210,7 +206,7 @@ export default function WritingPage() {
                 : null}
             </article>
 
-            {/* ─ aside desktop ─ */}
+            {/* aside desktop */}
             {related.length > 0 && (
               <aside className="hidden md:block col-start-10 col-span-2 md:pt-[42px]">
                 <h3
