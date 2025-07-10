@@ -47,11 +47,6 @@ export default function PhotographyDetail() {
   const categories = Array.from(new Set(articles.map((a) => a.category)));
 
   return (
-    <PhotographyPage
-      json={photographyJson as any}
-      active={photo}
-      related={related}
-      categories={categories}
-    />
+    <PhotographyPage active={photo} related={related} categories={categories} />
   );
 }

@@ -32,12 +32,11 @@ export default function PhotographyIndex() {
 
   const categories = Array.from(new Set(articles.map((a) => a.category)));
 
+  /* …código anterior sin cambios … */
+
+  /* …código anterior sin cambios … */
+
   return (
-    <PhotographyPage
-      json={photographyJson as any}
-      active={intro}
-      related={related}
-      categories={categories}
-    />
+    <PhotographyPage active={intro} related={related} categories={categories} />
   );
 }
