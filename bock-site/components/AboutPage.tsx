@@ -158,19 +158,23 @@ export default function AboutSection() {
 
             {/* -------- artículo principal -------- */}
             <article className="col-start-1 md:col-start-3 col-span-8 md:col-span-7 text-black p-6 md:p-10 space-y-6">
-              {("imageFull" in active || "heroImage" in active) &&
-                (active.imageFull || active.heroImage) &&
-                slug && (
-                  <img
-                    src={
-                      (active as Article).imageFull ||
-                      (active as Intro).heroImage
-                    }
-                    alt={active.title}
-                    className="w-full rounded-md border border-gray-300 object-cover"
-                  />
-                )}
+              {/* ---------- imagen ---------- */}
+              {slug && "imageFull" in active && active.imageFull && (
+                <img
+                  src={active.imageFull}
+                  alt={active.title}
+                  className="w-full rounded-md border border-gray-300 object-cover"
+                />
+              )}
+              {slug && "heroImage" in active && active.heroImage && (
+                <img
+                  src={active.heroImage}
+                  alt={active.title}
+                  className="w-full rounded-md border border-gray-300 object-cover"
+                />
+              )}
 
+              {/* ---------- separador ---------- */}
               {slug && (
                 <hr className="border-t-4 border-[var(--accent)] my-6 w-1/2" />
               )}
