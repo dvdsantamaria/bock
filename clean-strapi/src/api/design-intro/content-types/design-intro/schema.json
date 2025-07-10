@@ -1,0 +1,25 @@
+{
+  "kind": "singleType",
+  "collectionName": "design_intros",
+  "info": {
+    "singularName": "design-intro",
+    "pluralName": "design-intros",
+    "displayName": "design-intro"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title"
+    },
+    "content": {
+      "type": "blocks"
+    }
+  }
+}

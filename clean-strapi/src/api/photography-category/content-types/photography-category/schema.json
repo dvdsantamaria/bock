@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "photography_categories",
+  "info": {
+    "singularName": "photography-category",
+    "pluralName": "photography-categories",
+    "displayName": "photography-category"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name"
+    },
+    "photographies": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::photography.photography",
+      "mappedBy": "Category"
+    }
+  }
+}

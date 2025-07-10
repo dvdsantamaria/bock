@@ -1,0 +1,25 @@
+{
+  "kind": "singleType",
+  "collectionName": "about_intros",
+  "info": {
+    "singularName": "about-intro",
+    "pluralName": "about-intros",
+    "displayName": "about-intro"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title"
+    },
+    "content": {
+      "type": "blocks"
+    }
+  }
+}

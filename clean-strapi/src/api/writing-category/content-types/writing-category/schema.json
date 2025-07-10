@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "writing_categories",
+  "info": {
+    "singularName": "writing-category",
+    "pluralName": "writing-categories",
+    "displayName": "writing-category"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name"
+    },
+    "writings": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::writing.writing",
+      "mappedBy": "Category"
+    }
+  }
+}

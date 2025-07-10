@@ -1,0 +1,7 @@
+/**
+ * writing-intro router
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreRouter('api::writing-intro.writing-intro');

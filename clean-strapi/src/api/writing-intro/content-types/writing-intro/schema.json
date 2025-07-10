@@ -1,0 +1,25 @@
+{
+  "kind": "singleType",
+  "collectionName": "writing_intros",
+  "info": {
+    "singularName": "writing-intro",
+    "pluralName": "writing-intros",
+    "displayName": "writing-intro"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name"
+    },
+    "content": {
+      "type": "blocks"
+    }
+  }
+}
