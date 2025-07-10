@@ -1,40 +1,44 @@
 import { useRouter } from "next/router";
+import dynamic from "next/dynamic";
 import writingJson from "@/data/writing.json";
-import WritingPage, { WritingJson } from "@/components/WritingPage";
 
-const toSlug = (str: string) =>
-  str
+const WritingPage = dynamic(() => import("@/components/WritingPage"), {
+  ssr: false,
+});
+
+/* util */
+const toSlug = (s: string) =>
+  s
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^\w-]+/g, "");
 
 export default function WritingDetail() {
-  const router = useRouter();
-  const { category, slug } = router.query as {
-    category?: string;
-    slug?: string;
-  };
+  const { query } = useRouter();
+  const { category, slug } = query as { category?: string; slug?: string };
 
-  const { intro, articles } = writingJson as unknown as WritingJson;
+  if (!category || !slug) return null; // 1ª render SSR
 
-  if (!category || !slug) return null; // SSR / 404 fallback
+  const { intro, articles } = writingJson as any;
 
+  /* artículo activo (o intro de reserva) */
   const article =
-    articles.find((w) => w.category === category && toSlug(w.slug) === slug) ??
+    articles.find((a: any) => a.category === category && a.slug === slug) ??
     intro;
 
+  /* relacionados misma categoría */
   const related = articles
-    .filter((a) => a.category === category && a.id !== article.id)
-    .map((a) => ({ label: a.title, href: `/writing/${a.category}/${a.slug}` }));
+    .filter((a: any) => a.category === category && a.id !== article.id)
+    .map((a: any) => ({
+      label: a.title,
+      href: `/writing/${a.category}/${a.slug}`,
+    }));
 
-  const categories = Array.from(new Set(articles.map((a) => a.category)));
+  const categories = Array.from(
+    new Set(articles.map((a: any) => a.category))
+  ).sort();
 
   return (
-    <WritingPage
-      json={writingJson as any}
-      active={article}
-      related={related}
-      categories={categories}
-    />
+    <WritingPage active={article} related={related} categories={categories} />
   );
 }

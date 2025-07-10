@@ -1,12 +1,23 @@
 import dynamic from "next/dynamic";
+import writingJson from "@/data/writing.json";
 
-const PhotographyPage = dynamic(
-  () => import("@/components/PhotographyPage"),
-  { ssr: false } // evita hydration warnings por <img>
-);
+const WritingPage = dynamic(() => import("@/components/WritingPage"), {
+  ssr: false,
+});
 
-export default function PhotographyIndex() {
-  // El componente se encarga de hacer fetch a Strapi y mostrar
-  // la primera foto como “intro” (tal como hacía tu JSON local).
-  return <PhotographyPage />;
+export default function WritingIndex() {
+  const { intro, articles } = writingJson as any;
+
+  const related = articles.map((a: any) => ({
+    label: a.title,
+    href: `/writing/${a.category}/${a.slug}`,
+  }));
+
+  const categories = Array.from(
+    new Set(articles.map((a: any) => a.category))
+  ).sort();
+
+  return (
+    <WritingPage active={intro} related={related} categories={categories} />
+  );
 }
