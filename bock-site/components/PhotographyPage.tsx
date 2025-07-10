@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
 /* ---------- tipos ---------- */
-interface PhotoItem {
+export interface PhotoItem {
   id: number | "intro";
   title: string;
   subtitle?: string;
@@ -18,6 +18,15 @@ interface PhotoItem {
   imageThumb?: string;
   imageFull?: string;
 }
+
+/*  Para que pages/photography/[...].tsx pueda hacer:
+      import type { PhotographyJson } from "@/components/PhotographyPage"
+    (aunque en la versión que usa Strapi ya no cargamos un JSON local),
+    exportamos un tipo “vacío” con la misma forma que antes:             */
+export type PhotographyJson = {
+  intro: PhotoItem;
+  articles: PhotoItem[];
+};
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
@@ -36,19 +45,16 @@ const url = (p?: string) => (p && p.startsWith("/") ? `${API}${p}` : p ?? "");
 
 /* ─────────────────────────────────────────────── */
 export default function PhotographyPage() {
-  const router = useRouter();
-  const { category, slug } = router.query as {
-    category?: string;
-    slug?: string;
-  };
+  const { query, replace } = useRouter();
+  const { category, slug } = query as { category?: string; slug?: string };
 
   const [intro, setIntro] = useState<PhotoItem | null>(null);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* —— cargo todo desde Strapi y defino “intro” como la primera foto global —— */
+  /* carga todas las fotos y usa la primera como “intro” */
   useEffect(() => {
-    const fetchData = async () => {
+    (async () => {
       try {
         const res = await fetch(
           `${API}/api/photographies?populate=*&pagination[pageSize]=200`
@@ -82,21 +88,10 @@ export default function PhotographyPage() {
       } finally {
         setLoading(false);
       }
-    };
-    fetchData();
+    })();
   }, []);
 
-  /* inyecto variables de theme en <html> */
-  useEffect(() => {
-    const root = document.documentElement;
-    Object.entries(theme).forEach(([k, v]) =>
-      root.style.setProperty(`--${k}`, v)
-    );
-    return () =>
-      Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
-  }, []);
-
-  /* —— si hay categoría SIN slug (o slug inexistente), redirijo al primero —— */
+  /* redirección al primer slug si falta */
   useEffect(() => {
     if (loading || !photos.length || !category) return;
 
@@ -107,26 +102,24 @@ export default function PhotographyPage() {
       slug && photos.some((p) => p.slug === slug && p.category === category);
 
     if (!slugBelongs) {
-      router.replace(`/photography/${category}/${firstInCat.slug}`, undefined, {
+      replace(`/photography/${category}/${firstInCat.slug}`, undefined, {
         shallow: true,
       });
     }
-  }, [loading, photos, category, slug, router]);
+  }, [loading, photos, category, slug, replace]);
 
-  if (loading || !intro) {
-    return <div className="p-10">Loading…</div>;
-  }
+  if (loading || !intro) return <div className="p-10">Loading…</div>;
 
-  /* —— activo: slug válido > intro global —— */
+  /* activo: slug válido > intro global */
   const active =
     slug && photos.find((p) => p.slug === slug)
-      ? photos.find((p) => p.slug === slug)!
+      ? (photos.find((p) => p.slug === slug) as PhotoItem)
       : intro;
 
-  /* categorías para el sub-menú */
+  /* sub-menú */
   const categories = Array.from(new Set(photos.map((p) => p.category))).sort();
 
-  /* thumbs: SIEMPRE filtrar por categoría si existe, si no mostrar todas */
+  /* thumbs filtrados */
   const thumbs = category
     ? photos.filter((p) => p.category === category)
     : photos;
@@ -139,9 +132,7 @@ export default function PhotographyPage() {
 
       <MainLayout
         section="photography"
-        subMenuItems={categories.map(
-          (c) => c.charAt(0).toUpperCase() + c.slice(1)
-        )}
+        subMenuItems={categories.map((c) => c[0].toUpperCase() + c.slice(1))}
         theme={theme}
       >
         <AnimatePresence mode="wait">
@@ -153,7 +144,7 @@ export default function PhotographyPage() {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
-            {/* ── Hero / Foto grande ── */}
+            {/* Foto grande */}
             <article className="col-start-1 col-span-8 md:col-start-1 md:col-span-8 lg:col-start-3 lg:col-span-7 space-y-6 text-black pt-4 md:pt-10">
               {active.imageFull && (
                 <img
@@ -162,11 +153,10 @@ export default function PhotographyPage() {
                   className="w-full max-h-[80vh] object-contain border border-gray-300 rounded-md"
                 />
               )}
-
               <p className="italic text-gray-500">{active.title}</p>
             </article>
 
-            {/* ── Thumbnails ── */}
+            {/* Tira de thumbs */}
             <div className="col-span-8 lg:col-start-3 lg:col-span-7 pt-6">
               <ul className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide">
                 {thumbs.map((t) => (
