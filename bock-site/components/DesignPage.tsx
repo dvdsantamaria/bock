@@ -12,7 +12,7 @@ interface BaseItem {
   id: number;
   title: string;
   subtitle?: string;
-  body: any; // puede ser string o array de bloques
+  body: any;
   slug: string;
   imageThumb?: string;
   imageFull?: string;
@@ -25,7 +25,7 @@ interface IntroItem {
   heroImage?: string;
 }
 
-/* ───────── tema local ───────── */
+/* ───────── tema ───────── */
 const theme = {
   background: "#A7A9AC",
   accent: "#EDBE1C",
@@ -38,22 +38,20 @@ const theme = {
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
 export default function DesignPage() {
-  const router = useRouter();
-  const { slug } = router.query as { slug?: string };
+  const { slug } = useRouter().query as { slug?: string };
 
-  /* —— estado —— */
   const [intro, setIntro] = useState<IntroItem | null>(null);
   const [articles, setArticles] = useState<BaseItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* —— fetch desde Strapi —— */
+  /* ── fetch Strapi ── */
   useEffect(() => {
-    const fetchData = async () => {
+    (async () => {
       try {
-        // single type (intro)
-        const introRes = await fetch(`${API}/api/design-intro?populate=*`);
-        const introJson = await introRes.json();
-        const introRaw = introJson.data;
+        /* intro (single type) */
+        const introRaw = (
+          await (await fetch(`${API}/api/design-intro?populate=*`)).json()
+        ).data;
         setIntro({
           title: introRaw.title,
           subtitle: introRaw.subtitle,
@@ -63,36 +61,38 @@ export default function DesignPage() {
             : undefined,
         });
 
-        // collection (articles)
-        const artRes = await fetch(
-          `${API}/api/designs?populate=*&pagination[pageSize]=100`
+        /* colección */
+        const artRaw = (
+          await (
+            await fetch(
+              `${API}/api/designs?populate=*&pagination[pageSize]=100`
+            )
+          ).json()
+        ).data;
+        setArticles(
+          artRaw.map((i: any) => ({
+            id: i.id,
+            title: i.title,
+            subtitle: i.subtitle,
+            body: i.body || i.content,
+            slug: i.slug,
+            imageThumb: i.imageThumb?.url
+              ? `${API}${i.imageThumb.url}`
+              : undefined,
+            imageFull: i.imageFull?.url
+              ? `${API}${i.imageFull.url}`
+              : undefined,
+          }))
         );
-        const artJson = await artRes.json();
-        const mapped: BaseItem[] = artJson.data.map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          subtitle: item.subtitle,
-          body: item.body || item.content,
-          slug: item.slug,
-          imageThumb: item.imageThumb?.url
-            ? `${API}${item.imageThumb.url}`
-            : undefined,
-          imageFull: item.imageFull?.url
-            ? `${API}${item.imageFull.url}`
-            : undefined,
-        }));
-        setArticles(mapped);
       } catch (err) {
         console.error("Error fetching Design data:", err);
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchData();
+    })();
   }, []);
 
-  /* —— setea custom props —— */
+  /* ── custom-props del tema ── */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -104,18 +104,16 @@ export default function DesignPage() {
 
   if (loading || !intro) return <div className="p-10">Loading…</div>;
 
-  /* —— artículo activo —— */
-  const active =
-    slug && typeof slug === "string"
-      ? articles.find((a) => a.slug === slug) ?? intro
-      : intro;
+  /* activo */
+  const active = slug ? articles.find((a) => a.slug === slug) ?? intro : intro;
 
-  /* —— aside / related —— */
+  /* related */
   const related =
     "slug" in active
       ? articles.filter((a) => a.slug !== active.slug)
       : articles;
-  /* ─────────── render ─────────── */
+
+  /* ── render ── */
   return (
     <>
       <Head>
@@ -125,7 +123,7 @@ export default function DesignPage() {
       <MainLayout section="design" subMenuItems={["", "", ""]} theme={theme}>
         <AnimatePresence mode="wait">
           <motion.div
-            key={active.slug ?? "design-intro"}
+            key={"slug" in active ? active.slug : "design-intro"}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -158,25 +156,22 @@ export default function DesignPage() {
             {/* ─── artículo principal ─── */}
             <article
               className="
-                col-start-1  col-span-9
+                col-start-1 col-span-9
                 md:col-start-1 md:col-span-8 md:py-10 md:pr-10
                 lg:col-start-3 lg:col-span-7
                 text-black space-y-6
               "
             >
               {("imageFull" in active || "heroImage" in active) &&
-                (active.imageFull || active.heroImage) && (
+                ((active as any).imageFull || (active as any).heroImage) && (
                   <img
-                    src={
-                      (active as BaseItem).imageFull ||
-                      (active as IntroItem).heroImage
-                    }
+                    src={(active as any).imageFull ?? (active as any).heroImage}
                     alt={active.title}
                     className="w-full rounded-md border border-gray-300 object-cover"
                   />
                 )}
 
-              {(active.imageFull || active.heroImage) && (
+              {("imageFull" in active || "heroImage" in active) && (
                 <hr className="border-t-4 border-[var(--accent)] my-6 w-1/2" />
               )}
 
