@@ -1,19 +1,23 @@
+// config/middlewares.ts
+console.info('🟢 middlewares.ts loaded');
+
 export default [
-  "strapi::logger",
-  "strapi::errors",
-  "strapi::security",
+  'strapi::errors',
+  'strapi::security',
   {
-    name: "strapi::cors",
+    name: 'strapi::cors',
     config: {
-      origin: ["http://localhost:3000"],
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      headers: ["*"],
+      origin: [
+        'http://109.235.65.193:3000',
+        'http://localhost:3000',
+      ],
+      credentials: true,
+      methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
     },
   },
-  "strapi::poweredBy",
-  "strapi::query",
-  "strapi::body",
-  "strapi::session",
-  "strapi::favicon",
-  "strapi::public",
+  'strapi::query',    // ← ¡Obligatorio!
+  'strapi::body',
+  'strapi::session',
+  'strapi::favicon',
+  'strapi::public',
 ];
