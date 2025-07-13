@@ -16,18 +16,15 @@ export async function getStaticProps() {
     const blocks: PhotographyBlock[] =
       r?.data?.map((it: any) => ({
         id: it.id,
-        title: it.attributes.title,
-        subtitle: it.attributes.subtitle,
-        body: it.attributes.body || it.attributes.content || "",
-        slug: it.attributes.slug,
-        category:
-          it.attributes.Category?.data?.attributes?.slug || "uncategorised",
-        imageThumb: it.attributes.imageThumb?.data?.attributes?.url
-          ? `${API}${it.attributes.imageThumb.data.attributes.url}`
+        title: it.title,
+        subtitle: it.subtitle ?? "",
+        body: it.body ?? it.content ?? "",
+        slug: it.slug,
+        category: it.Category?.slug ?? "uncategorised",
+        imageThumb: it.imageThumb?.url
+          ? `${API}${it.imageThumb.url}`
           : undefined,
-        imageFull: it.attributes.imageFull?.data?.attributes?.url
-          ? `${API}${it.attributes.imageFull.data.attributes.url}`
-          : undefined,
+        imageFull: it.imageFull?.url ? `${API}${it.imageFull.url}` : undefined,
       })) || [];
 
     return { props: { blocks }, revalidate: 300 };
