@@ -8,22 +8,31 @@ interface Props {
 }
 
 export async function getStaticProps() {
-  const res = await fetch(`${API}/api/photos?populate=*`);
-  const raw = await res.json();
+  try {
+    const res = await fetch(`${API}/api/photos?populate=*`);
+    const raw = await res.json();
 
-  const blocks: PhotographyBlock[] = raw.data.map((it: any) => ({
-    id: it.id,
-    title: it.title,
-    subtitle: it.subtitle,
-    body: it.body || it.content,
-    slug: it.slug,
-    imageThumb: it.imageThumb?.url ? `${API}${it.imageThumb.url}` : undefined,
-    imageFull: it.imageFull?.url ? `${API}${it.imageFull.url}` : undefined,
-  }));
+    if (!raw?.data || !Array.isArray(raw.data)) {
+      throw new Error("Invalid or empty data from /api/photos");
+    }
 
-  return { props: { blocks }, revalidate: 300 };
-}
+    const blocks: PhotographyBlock[] = raw.data.map((it: any) => ({
+      id: it.id,
+      title: it.attributes?.title || it.title,
+      subtitle: it.attributes?.subtitle || it.subtitle,
+      body: it.attributes?.body || it.body || it.content,
+      slug: it.attributes?.slug || it.slug,
+      imageThumb: it.attributes?.imageThumb?.url
+        ? `${API}${it.attributes.imageThumb.url}`
+        : undefined,
+      imageFull: it.attributes?.imageFull?.url
+        ? `${API}${it.attributes.imageFull.url}`
+        : undefined,
+    }));
 
-export default function PhotographyIndex({ blocks }: Props) {
-  return <PhotographyPage blocks={blocks} active={blocks[0]} />;
+    return { props: { blocks }, revalidate: 300 };
+  } catch (err) {
+    console.error("Error in getStaticProps /photography:", err);
+    return { notFound: true };
+  }
 }
