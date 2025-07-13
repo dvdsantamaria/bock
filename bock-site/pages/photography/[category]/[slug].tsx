@@ -1,20 +1,45 @@
-import dynamic from "next/dynamic";
-import { useRouter } from "next/router";
+import PhotographyPage from "@/components/PhotographyPage";
+import type { PhotoItem } from "@/types/photography";
 
-const PhotographyPage = dynamic(() => import("@/components/PhotographyPage"), {
-  ssr: false,
-});
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-export default function PhotographyDetail() {
-  const { query } = useRouter();
-  const { category, slug } = query as { category?: string; slug?: string };
+interface Props {
+  blocks: PhotoItem[];
+  active: PhotoItem;
+}
 
-  // Evita que Next trate de renderizar en SSR sin datos.
-  if (!category || !slug) return null;
+export async function getStaticPaths() {
+  const res = await fetch(`${API}/api/photos`);
+  const data = await res.json();
 
-  /* 
-     PhotographyPage ya filtra la foto activa en función de
-     la ruta; no hace falta que le pasemos nada.
-  */
-  return <PhotographyPage />;
+  const paths = data.data.map((it: any) => ({
+    params: { slug: it.slug },
+  }));
+
+  return { paths, fallback: false };
+}
+
+export async function getStaticProps({ params }: { params: { slug: string } }) {
+  const { slug } = params;
+
+  const res = await fetch(`${API}/api/photos?populate=*`);
+  const raw = await res.json();
+
+  const blocks: PhotoItem[] = raw.data.map((it: any) => ({
+    id: it.id,
+    title: it.title,
+    subtitle: it.subtitle,
+    body: it.body || it.content,
+    slug: it.slug,
+    imageThumb: it.imageThumb?.url ? `${API}${it.imageThumb.url}` : undefined,
+    imageFull: it.imageFull?.url ? `${API}${it.imageFull.url}` : undefined,
+  }));
+
+  const active = blocks.find((b) => b.slug === slug) ?? blocks[0];
+
+  return { props: { blocks, active }, revalidate: 300 };
+}
+
+export default function PhotographySlugPage({ blocks, active }: Props) {
+  return <PhotographyPage blocks={blocks} active={active} />;
 }

@@ -1,9 +1,26 @@
-import dynamic from "next/dynamic";
+import AboutPage from "@/components/AboutPage";
+import type { AboutBlock, LinkItem } from "@/types/about";
 
-const AboutSection = dynamic(() => import("@/components/AboutPage"), {
-  ssr: false, // evita advertencias de hidratación con <Image>
-});
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-export default function AboutIndex() {
-  return <AboutSection />;
+interface Props {
+  blocks: AboutBlock[];
+}
+
+export async function getStaticProps() {
+  const res = await fetch(`${API}/api/abouts?populate=*`);
+  const raw = await res.json();
+
+  const blocks: AboutBlock[] = raw.data.map((it: any) => ({
+    id: it.id,
+    title: it.title,
+    body: it.body || it.content,
+    slug: it.slug,
+  }));
+
+  return { props: { blocks }, revalidate: 300 };
+}
+
+export default function AboutIndex({ blocks }: Props) {
+  return <AboutPage blocks={blocks} active={blocks[0]} />;
 }

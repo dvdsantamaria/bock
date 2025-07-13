@@ -1,38 +1,49 @@
-/* pages/photography/[category]/index.tsx
-   — al entrar en /photography/<category> te envía a una foto aleatoria de esa categoría — */
-
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import photos from "@/data/photography.json";
+import type { PhotoItem } from "@/types/photography";
 
-/* tipado mínimo:  solo necesitamos la lista de artículos */
-interface PhotoItem {
-  category: string;
-  slug: string;
-}
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
 export default function PhotographyCategoryRedirect() {
   const router = useRouter();
   const { category } = router.query as { category?: string };
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
 
   useEffect(() => {
-    if (!category) return; // aún sin hidratar
+    if (!category) return;
 
-    /* filtra todos los ítems de la categoría */
-    const list = (photos as { articles: PhotoItem[] }).articles.filter(
-      (p) => p.category === category
-    );
+    (async () => {
+      try {
+        const res = await fetch(`${API}/api/photos?populate=*`);
+        const raw = await res.json();
 
-    /* si hay fotos ⇒ redirige a una aleatoria;
-          si no existe la categoría, vuelve al índice general */
-    if (list.length) {
-      const random = list[Math.floor(Math.random() * list.length)];
-      router.replace(`/photography/${random.category}/${random.slug}`);
-    } else {
-      router.replace("/photography");
-    }
+        const allPhotos: PhotoItem[] = raw.data.map((it: any) => ({
+          id: it.id,
+          title: it.title,
+          subtitle: it.subtitle,
+          body: it.body || it.content,
+          slug: it.slug,
+          imageThumb: it.imageThumb?.url
+            ? `${API}${it.imageThumb.url}`
+            : undefined,
+          imageFull: it.imageFull?.url
+            ? `${API}${it.imageFull.url}`
+            : undefined,
+        }));
+
+        const filtered = allPhotos.filter((p) => p.slug.startsWith(category));
+        if (filtered.length) {
+          const random = filtered[Math.floor(Math.random() * filtered.length)];
+          router.replace(`/photography/${category}/${random.slug}`);
+        } else {
+          router.replace("/photography");
+        }
+      } catch (err) {
+        console.error("Failed to fetch photos", err);
+        router.replace("/photography");
+      }
+    })();
   }, [category, router]);
 
-  /* nada que mostrar mientras redirige */
   return null;
 }

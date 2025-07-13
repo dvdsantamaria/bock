@@ -1,23 +1,29 @@
-import dynamic from "next/dynamic";
-import photographyJson from "@/data/photography.json";
+import PhotographyPage from "@/components/PhotographyPage";
+import type { PhotoItem } from "@/types/photography";
 
-/* carga diferida para evitar hydration-warnings de <img> */
-const PhotographyPage = dynamic(() => import("@/components/PhotographyPage"), {
-  ssr: false,
-}) as any; // <- evita que TS se queje por las props adicionales
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-export default function PhotographyIndex() {
-  const { intro, articles } = photographyJson as any;
+interface Props {
+  blocks: PhotoItem[];
+}
 
-  const related = articles.map((a: any) => ({
-    label: a.title,
-    href: `/photography/${a.category}/${a.slug}`,
-    thumb: a.imageThumb,
+export async function getStaticProps() {
+  const res = await fetch(`${API}/api/photos?populate=*`);
+  const raw = await res.json();
+
+  const blocks: PhotoItem[] = raw.data.map((it: any) => ({
+    id: it.id,
+    title: it.title,
+    subtitle: it.subtitle,
+    body: it.body || it.content,
+    slug: it.slug,
+    imageThumb: it.imageThumb?.url ? `${API}${it.imageThumb.url}` : undefined,
+    imageFull: it.imageFull?.url ? `${API}${it.imageFull.url}` : undefined,
   }));
 
-  const categories = Array.from(new Set(articles.map((a: any) => a.category)));
+  return { props: { blocks }, revalidate: 300 };
+}
 
-  return (
-    <PhotographyPage active={intro} related={related} categories={categories} />
-  );
+export default function PhotographyIndex({ blocks }: Props) {
+  return <PhotographyPage blocks={blocks} active={blocks[0]} />;
 }

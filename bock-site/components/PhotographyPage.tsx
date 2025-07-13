@@ -1,128 +1,40 @@
-/* components/PhotographyPage.tsx */
-import { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Head from "next/head";
-import { useRouter } from "next/router";
-import MainLayout from "@/components/MainLayout";
-import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
-/* ---------- tipos ---------- */
-export interface PhotoItem {
-  id: number | "intro";
-  title: string;
-  subtitle?: string;
-  body?: string;
-  category: string;
-  slug: string;
-  imageThumb?: string;
-  imageFull?: string;
+import MainLayout from "@/components/MainLayout";
+import Footer from "@/components/Footer";
+
+import type { PhotoItem } from "@/types/photography";
+
+interface Props {
+  active: PhotoItem;
+  blocks: PhotoItem[];
 }
 
-/*  Para que pages/photography/[...].tsx pueda hacer:
-      import type { PhotographyJson } from "@/components/PhotographyPage"
-    (aunque en la versión que usa Strapi ya no cargamos un JSON local),
-    exportamos un tipo “vacío” con la misma forma que antes:             */
-export type PhotographyJson = {
-  intro: PhotoItem;
-  articles: PhotoItem[];
-};
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
-
-/* ---------- tema ---------- */
+/* ─────────── Tema ─────────── */
 const theme = {
-  background: "#A7A9AC",
-  accent: "#CDE59C",
-  menuText: "#000000",
-  menuHover: "#CDE59C",
-  logoText: "#000000",
-  sectionColor: "#cccccc",
+  background: "#1A202C",
+  accent: "#7DD3FC",
+  menuText: "#FFFFFF",
+  menuHover: "#7DD3FC",
+  logoText: "#FFFFFF",
+  sectionColor: "#7DD3FC",
 };
 
-/* prefija la URL si empieza con “/” */
-const url = (p?: string) => (p && p.startsWith("/") ? `${API}${p}` : p ?? "");
-
-/* ─────────────────────────────────────────────── */
-export default function PhotographyPage() {
-  const { query, replace } = useRouter();
-  const { category, slug } = query as { category?: string; slug?: string };
-
-  const [intro, setIntro] = useState<PhotoItem | null>(null);
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  /* carga todas las fotos y usa la primera como “intro” */
+export default function PhotographyPage({ active, blocks }: Props) {
+  /* aplica tema */
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(
-          `${API}/api/photographies?populate=*&pagination[pageSize]=200`
-        );
-        const json = await res.json();
-        const list: PhotoItem[] = (json.data as any[]).map((p) => ({
-          id: p.id,
-          title: p.title,
-          category: p.Category?.slug || "uncategorised",
-          slug: p.slug,
-          imageThumb: url(p.imageThumb?.url),
-          imageFull: url(p.imageFull?.url),
-        }));
-        setPhotos(list);
-
-        if (list.length) {
-          const first = list[0];
-          setIntro({
-            id: "intro",
-            title: first.title,
-            subtitle: first.category,
-            body: "",
-            category: first.category,
-            slug: first.slug,
-            imageThumb: first.imageThumb,
-            imageFull: first.imageFull,
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching photographs:", err);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    const root = document.documentElement;
+    Object.entries(theme).forEach(([k, v]) =>
+      root.style.setProperty(`--${k}`, v)
+    );
+    return () =>
+      Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
-  /* redirección al primer slug si falta */
-  useEffect(() => {
-    if (loading || !photos.length || !category) return;
-
-    const firstInCat = photos.find((p) => p.category === category);
-    if (!firstInCat) return;
-
-    const slugBelongs =
-      slug && photos.some((p) => p.slug === slug && p.category === category);
-
-    if (!slugBelongs) {
-      replace(`/photography/${category}/${firstInCat.slug}`, undefined, {
-        shallow: true,
-      });
-    }
-  }, [loading, photos, category, slug, replace]);
-
-  if (loading || !intro) return <div className="p-10">Loading…</div>;
-
-  /* activo: slug válido > intro global */
-  const active =
-    slug && photos.find((p) => p.slug === slug)
-      ? (photos.find((p) => p.slug === slug) as PhotoItem)
-      : intro;
-
-  /* sub-menú */
-  const categories = Array.from(new Set(photos.map((p) => p.category))).sort();
-
-  /* thumbs filtrados */
-  const thumbs = category
-    ? photos.filter((p) => p.category === category)
-    : photos;
+  const related = blocks.filter((b) => b.slug !== active.slug);
 
   return (
     <>
@@ -132,50 +44,115 @@ export default function PhotographyPage() {
 
       <MainLayout
         section="photography"
-        subMenuItems={categories.map((c) => c[0].toUpperCase() + c.slice(1))}
+        subMenuItems={blocks.map((b) => b.title)}
         theme={theme}
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={slug ?? active.id}
+            key={active.slug}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
-            {/* Foto grande */}
-            <article className="col-start-1 col-span-8 md:col-start-1 md:col-span-8 lg:col-start-3 lg:col-span-7 space-y-6 text-black pt-4 md:pt-10">
+            {/* dropdown móvil */}
+            {related.length > 0 && (
+              <div className="col-span-8 md:hidden px-4 pt-4">
+                <details className="border border-gray-600 rounded-md bg-gray-900">
+                  <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-[var(--menuText)] hover:text-[var(--accent)]">
+                    Gallery
+                  </summary>
+                  <ul className="px-4 py-2 space-y-1">
+                    {related.map((r) => (
+                      <li key={r.slug}>
+                        <Link
+                          href={`/photography/${r.slug}`}
+                          className="block text-sm hover:text-[var(--accent)]"
+                        >
+                          {r.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              </div>
+            )}
+
+            {/* foto principal */}
+            <article
+              className="
+                col-start-1 col-span-9
+                md:col-start-1 md:col-span-8 md:py-10 md:pr-10
+                lg:col-start-3 lg:col-span-7
+                text-white space-y-6
+              "
+            >
               {active.imageFull && (
                 <img
                   src={active.imageFull}
                   alt={active.title}
-                  className="w-full max-h-[80vh] object-contain border border-gray-300 rounded-md"
+                  className="w-full rounded-md border border-gray-700 object-cover"
                 />
               )}
-              <p className="italic text-gray-500">{active.title}</p>
+
+              <h1 className="text-3xl font-semibold">{active.title}</h1>
+              {active.subtitle && (
+                <p className="italic text-gray-400">{active.subtitle}</p>
+              )}
+
+              {/* descripción */}
+              {Array.isArray(active.body)
+                ? active.body.map((block: any, i: number) =>
+                    block.type === "paragraph" ? (
+                      <p key={i} className="text-gray-200">
+                        {block.children?.map((c: any, j: number) => (
+                          <span key={j}>{c.text}</span>
+                        ))}
+                      </p>
+                    ) : null
+                  )
+                : typeof active.body === "string"
+                ? active.body.split("\n\n").map((p: string, i: number) => (
+                    <p key={i} className="text-gray-200">
+                      {p}
+                    </p>
+                  ))
+                : null}
             </article>
 
-            {/* Tira de thumbs */}
-            <div className="col-span-8 lg:col-start-3 lg:col-span-7 pt-6">
-              <ul className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide">
-                {thumbs.map((t) => (
-                  <li key={t.id} className="shrink-0 w-40">
-                    <Link
-                      href={`/photography/${t.category}/${t.slug}`}
-                      scroll={false}
-                      className="block"
-                    >
-                      <img
-                        src={t.imageThumb}
-                        alt={t.title}
-                        className="w-full aspect-video object-cover rounded-md border border-gray-300 hover:border-[var(--accent)] transition"
-                      />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {/* aside desktop */}
+            {related.length > 0 && (
+              <aside className="hidden md:block col-start-10 col-span-2 pt-[42px]">
+                <h3
+                  className="uppercase tracking-wider text-sm mb-4"
+                  style={{ color: "var(--sectionColor)" }}
+                >
+                  Gallery
+                </h3>
+                <ul className="space-y-4">
+                  {related.map((r) => (
+                    <li key={r.slug}>
+                      <Link
+                        href={`/photography/${r.slug}`}
+                        className="group block"
+                      >
+                        {r.imageThumb && (
+                          <img
+                            src={r.imageThumb}
+                            alt={r.title}
+                            className="w-full aspect-video object-cover rounded-md border border-gray-700 group-hover:border-[var(--accent)] transition"
+                          />
+                        )}
+                        <span className="mt-1 block text-xs leading-snug text-[var(--menuText)] group-hover:text-[var(--accent)]">
+                          {r.title}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </aside>
+            )}
 
             <Footer />
           </motion.div>
