@@ -1,7 +1,3 @@
-/* pages/photography/[category]/index.tsx
-   Cuando entras en /photography/<category> te redirige
-   a una foto aleatoria de esa categoría                    */
-
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import type { PhotographyBlock } from "@/types/photography";
@@ -13,29 +9,32 @@ export default function PhotographyCategoryRedirect() {
   const { category } = router.query as { category?: string };
 
   useEffect(() => {
-    if (!category) return; // todavía sin hidratar
+    if (!category) return; // aún no se hidrata
 
     (async () => {
       try {
-        /* sólo fotos de esa categoría */
         const res = await fetch(
-          `${API}/api/photographies?populate=Category&filters[Category][slug][$eq]=${category}&pagination[pageSize]=100`
-        ).then((r) => r.json());
+          `${API}/api/photographies?populate=Category,imageThumb,imageFull&filters[Category][slug][$eq]=${category}&pagination[pageSize]=100`
+        );
+        const json = await res.json();
 
-        const photos: PhotographyBlock[] = res.data.map((it: any) => ({
-          id: it.id,
-          title: it.title,
-          subtitle: it.subtitle,
-          body: it.body || it.content,
-          slug: it.slug,
-          category: it.Category?.slug || "uncategorised",
-          imageThumb: it.imageThumb?.url
-            ? `${API}${it.imageThumb.url}`
-            : undefined,
-          imageFull: it.imageFull?.url
-            ? `${API}${it.imageFull.url}`
-            : undefined,
-        }));
+        const photos: PhotographyBlock[] = json.data.map((it: any) => {
+          const attrs = it.attributes || {}; // fallback por si no usa attributes
+          return {
+            id: it.id,
+            title: attrs.title,
+            subtitle: attrs.subtitle,
+            body: attrs.body || attrs.content,
+            slug: attrs.slug,
+            category: attrs.Category?.data?.attributes?.slug || "uncategorised",
+            imageThumb: attrs.imageThumb?.data?.attributes?.url
+              ? `${API}${attrs.imageThumb.data.attributes.url}`
+              : undefined,
+            imageFull: attrs.imageFull?.data?.attributes?.url
+              ? `${API}${attrs.imageFull.data.attributes.url}`
+              : undefined,
+          };
+        });
 
         if (photos.length) {
           const random = photos[Math.floor(Math.random() * photos.length)];
@@ -50,6 +49,5 @@ export default function PhotographyCategoryRedirect() {
     })();
   }, [category, router]);
 
-  /* Nada en pantalla mientras decide dónde ir */
   return null;
 }

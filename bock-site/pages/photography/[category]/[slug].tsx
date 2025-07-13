@@ -1,44 +1,114 @@
-import PhotographyPage from "@/components/PhotographyPage";
+import { useRouter } from "next/router";
+import type { GetStaticPaths, GetStaticProps } from "next";
 import type { PhotographyBlock } from "@/types/photography";
+import { useEffect, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-export async function getStaticPaths() {
-  const res = await fetch(`${API}/api/photographies?populate=Category`);
+interface Props {
+  block: PhotographyBlock | null;
+  blocks: PhotographyBlock[];
+}
+
+function renderBody(
+  body: string | { type: string; children: { text: string }[] }[]
+) {
+  if (typeof body === "string") {
+    return <p>{body}</p>;
+  }
+
+  if (Array.isArray(body)) {
+    return body.map((block, idx) => (
+      <p key={idx}>
+        {block.children?.map((c, i) => (
+          <span key={i}>{c.text}</span>
+        ))}
+      </p>
+    ));
+  }
+
+  return null;
+}
+
+export default function PhotographySlugPage({ block, blocks }: Props) {
+  const router = useRouter();
+
+  if (router.isFallback) {
+    return <div>Loading…</div>;
+  }
+
+  if (!block) {
+    return <div>Photo not found</div>;
+  }
+
+  return (
+    <div style={{ padding: "2rem" }}>
+      <h1>{block.title}</h1>
+      <h2>{block.subtitle}</h2>
+      <div>{renderBody(block.body)}</div>
+      {block.imageFull && (
+        <img
+          src={block.imageFull}
+          alt={block.title}
+          style={{ maxWidth: "100%" }}
+        />
+      )}
+    </div>
+  );
+}
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const res = await fetch(`${API}/api/photos?populate=*`);
   const data = await res.json();
 
-  const paths = data.data.map((it: any) => ({
-    params: {
-      category: it.Category?.slug || "uncategorised",
-      slug: it.slug,
-    },
-  }));
+  const paths =
+    data?.data?.map((it: any) => {
+      const slug = it.attributes?.slug ?? "";
+      const [category, subslug] = slug.split("/");
+      return {
+        params: { category, slug: subslug },
+      };
+    }) || [];
 
-  return { paths, fallback: false };
-}
+  return {
+    paths,
+    fallback: true,
+  };
+};
 
-export async function getStaticProps({ params }: any) {
-  const { category, slug } = params;
-
+export const getStaticProps: GetStaticProps = async ({ params }) => {
   const res = await fetch(
-    `${API}/api/photographies?populate=Category,imageThumb,imageFull&pagination[pageSize]=100`
-  ).then((r) => r.json());
+    `${API}/api/photos?populate=Category,imageThumb,imageFull`
+  );
+  const data = await res.json();
 
-  const blocks: PhotographyBlock[] = res.data.map((it: any) => ({
-    id: it.id,
-    title: it.title,
-    subtitle: it.subtitle,
-    body: it.body || it.content,
-    slug: it.slug,
-    category: it.Category?.slug || "uncategorised",
-    imageThumb: it.imageThumb?.url ? `${API}${it.imageThumb.url}` : undefined,
-    imageFull: it.imageFull?.url ? `${API}${it.imageFull.url}` : undefined,
-  }));
+  const all: PhotographyBlock[] =
+    data?.data?.map((it: any) => {
+      const a = it.attributes || {};
+      return {
+        id: it.id,
+        title: a.title,
+        subtitle: a.subtitle,
+        slug: a.slug,
+        body: a.body || a.content || "",
+        category: a.Category?.data?.attributes?.slug || "uncategorised",
+        imageThumb: a.imageThumb?.data?.attributes?.url
+          ? `${API}${a.imageThumb.data.attributes.url}`
+          : undefined,
+        imageFull: a.imageFull?.data?.attributes?.url
+          ? `${API}${a.imageFull.data.attributes.url}`
+          : undefined,
+      };
+    }) || [];
 
-  const active =
-    blocks.find((p) => p.slug === slug && p.category === category) ?? blocks[0];
+  const slug = `${params?.category}/${params?.slug}`;
+  const block = all.find((p) => p.slug === slug) || null;
 
-  return { props: { blocks, active }, revalidate: 300 };
-}
-
-export default PhotographyPage;
+  return {
+    props: {
+      block,
+      blocks: all,
+    },
+    revalidate: 300,
+  };
+};

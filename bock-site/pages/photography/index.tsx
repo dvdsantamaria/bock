@@ -8,7 +8,9 @@ interface Props {
 }
 
 export async function getStaticProps() {
-  const res = await fetch(`${API}/api/photos?populate=*`);
+  const res = await fetch(
+    `${API}/api/photographies?populate=Category,imageThumb,imageFull`
+  );
   const raw = await res.json();
 
   if (!Array.isArray(raw.data)) {
@@ -25,6 +27,7 @@ export async function getStaticProps() {
       slug: it.slug,
       imageThumb: it.imageThumb?.url ? `${API}${it.imageThumb.url}` : undefined,
       imageFull: it.imageFull?.url ? `${API}${it.imageFull.url}` : undefined,
+      category: it.Category?.slug || "uncategorised", // ✅ se agregó este campo
     }));
 
   return { props: { blocks }, revalidate: 300 };

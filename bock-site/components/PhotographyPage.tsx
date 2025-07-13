@@ -24,9 +24,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 interface Props {
-  /** Si viene desde `getStaticProps`  */
   blocks?: PhotographyBlock[];
-  /** Si viene pre-seleccionada una foto  */
   active?: PhotographyBlock;
 }
 
@@ -36,18 +34,16 @@ export default function PhotographyPage({ blocks, active }: Props) {
     slug?: string;
   };
 
-  /* Estado cuando la página se hidrata vía CSR  */
   const [items, setItems] = useState<PhotographyBlock[]>(blocks ?? []);
   const [loading, setLoading] = useState(!blocks);
 
-  /* ---------- CSR fetch (sólo si no vino estático) ---------- */
   useEffect(() => {
-    if (blocks) return; // ya vino por SSG
+    if (blocks) return;
 
     (async () => {
       try {
         const res = await fetch(
-          `${API}/api/photographies?populate=Category,imageThumb,imageFull&pagination[pageSize]=100`
+          `${API}/api/photos?populate=Category,imageThumb,imageFull&pagination[pageSize]=100`
         ).then((r) => r.json());
 
         setItems(
@@ -58,7 +54,7 @@ export default function PhotographyPage({ blocks, active }: Props) {
               subtitle: it.subtitle,
               body: it.body || it.content,
               slug: it.slug,
-              category: it.Category?.slug || "uncategorised",
+              category: it.Category?.slug ?? "uncategorised",
               imageThumb: it.imageThumb?.url
                 ? `${API}${it.imageThumb.url}`
                 : undefined,
@@ -76,7 +72,6 @@ export default function PhotographyPage({ blocks, active }: Props) {
     })();
   }, [blocks]);
 
-  /* ---------- aplicar tema ---------- */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -89,7 +84,6 @@ export default function PhotographyPage({ blocks, active }: Props) {
   if (loading) return <div className="p-10">Loading…</div>;
   if (!items.length) return <div className="p-10">No photos found.</div>;
 
-  /* ---------- escoger activo ---------- */
   let current: PhotographyBlock = active ?? items[0];
   if (slug && category) {
     current =
@@ -97,10 +91,8 @@ export default function PhotographyPage({ blocks, active }: Props) {
   }
 
   const related = items.filter((p) => p.slug !== current.slug);
-
   const categories = Array.from(new Set(items.map((p) => p.category)));
 
-  /* ---------- UI ---------- */
   return (
     <>
       <Head>
@@ -121,7 +113,6 @@ export default function PhotographyPage({ blocks, active }: Props) {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
-            {/* ---------- Móvil: desplegable ---------- */}
             {related.length > 0 && (
               <div className="col-span-8 md:hidden px-4 pt-4">
                 <details className="border border-gray-300 rounded-md bg-white">
@@ -144,7 +135,6 @@ export default function PhotographyPage({ blocks, active }: Props) {
               </div>
             )}
 
-            {/* ---------- Foto principal ---------- */}
             <article
               className="
                 col-start-1 col-span-8
@@ -183,7 +173,6 @@ export default function PhotographyPage({ blocks, active }: Props) {
                 : null}
             </article>
 
-            {/* ---------- Sidebar desktop ---------- */}
             {related.length > 0 && (
               <aside className="hidden md:block col-start-10 col-span-2 pt-[42px]">
                 <h3 className="uppercase tracking-wider text-sm mb-4">
