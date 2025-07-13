@@ -1,4 +1,3 @@
-// pages/photography/[category]/[slug].tsx
 import type { GetStaticPaths, GetStaticProps } from "next";
 import PhotographyPage from "@/components/PhotographyPage";
 import type { PhotographyBlock } from "@/types/photography";
@@ -9,91 +8,89 @@ interface Props {
   active: PhotographyBlock | null;
   blocks: PhotographyBlock[];
 }
-/*  -------- paths --------  */
+
+/* -------- getStaticPaths (ISR) -------- */
 export const getStaticPaths: GetStaticPaths = async () => {
-  const { data } = await fetch(
+  const r = await fetch(
     `${API}/api/photographies` + `?populate[Category][fields][0]=slug`
-  ).then((r) => r.json());
+  ).then((x) => x.json());
 
   const paths =
-    data
+    r?.data
       ?.filter((it: any) => it.attributes?.Category?.data)
       .map((it: any) => ({
         params: {
           category: it.attributes.Category.data.attributes.slug,
           slug: it.attributes.slug,
         },
-      })) ?? [];
+      })) || [];
 
   return { paths, fallback: "blocking" };
 };
 
-/*  -------- props (ISR) --------  */
+/* -------- getStaticProps (ISR) -------- */
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const slug = params!.slug as string;
 
-  /* ► foto activa */
-  const { data: activeArr } = await fetch(
+  // 1️⃣  foto activa
+  const r1 = await fetch(
     `${API}/api/photographies` +
       `?filters[slug][$eq]=${slug}` +
       `&populate[Category][fields][0]=slug` +
       `&populate[imageThumb][fields][0]=url` +
       `&populate[imageFull][fields][0]=url`
-  ).then((r) => r.json());
+  ).then((x) => x.json());
 
-  if (!activeArr?.length) return { notFound: true, revalidate: 60 };
+  if (!r1?.data?.length) return { notFound: true, revalidate: 60 };
 
-  const it = activeArr[0];
-  const a = it.attributes;
+  const it = r1.data[0];
   const active: PhotographyBlock = {
     id: it.id,
-    title: a.title,
-    subtitle: a.subtitle ?? "",
-    body: a.body ?? a.content ?? "",
-    slug: a.slug,
-    category: a.Category?.data?.attributes?.slug ?? "uncategorised",
-    imageThumb: a.imageThumb?.data?.attributes?.url
-      ? `${API}${a.imageThumb.data.attributes.url}`
+    title: it.attributes.title,
+    subtitle: it.attributes.subtitle,
+    body: it.attributes.body || it.attributes.content || "",
+    slug: it.attributes.slug,
+    category: it.attributes.Category?.data?.attributes?.slug || "uncategorised",
+    imageThumb: it.attributes.imageThumb?.data?.attributes?.url
+      ? `${API}${it.attributes.imageThumb.data.attributes.url}`
       : undefined,
-    imageFull: a.imageFull?.data?.attributes?.url
-      ? `${API}${a.imageFull.data.attributes.url}`
+    imageFull: it.attributes.imageFull?.data?.attributes?.url
+      ? `${API}${it.attributes.imageFull.data.attributes.url}`
       : undefined,
   };
 
-  /* ► todas (para la tira de thumbs) */
-  const { data: list } = await fetch(
+  // 2️⃣  todas las fotos (sidebar / thumbs)
+  const r2 = await fetch(
     `${API}/api/photographies` +
       `?pagination[pageSize]=100` +
       `&populate[Category][fields][0]=slug` +
       `&populate[imageThumb][fields][0]=url` +
       `&populate[imageFull][fields][0]=url`
-  ).then((r) => r.json());
+  ).then((x) => x.json());
 
   const blocks: PhotographyBlock[] =
-    list
+    r2?.data
       ?.filter((p: any) => p.attributes?.Category?.data)
-      .map((p: any) => {
-        const x = p.attributes;
-        return {
-          id: p.id,
-          title: x.title,
-          subtitle: x.subtitle ?? "",
-          body: x.body ?? x.content ?? "",
-          slug: x.slug,
-          category: x.Category.data.attributes.slug ?? "uncategorised",
-          imageThumb: x.imageThumb?.data?.attributes?.url
-            ? `${API}${x.imageThumb.data.attributes.url}`
-            : undefined,
-          imageFull: x.imageFull?.data?.attributes?.url
-            ? `${API}${x.imageFull.data.attributes.url}`
-            : undefined,
-        };
-      }) ?? [];
+      .map((p: any) => ({
+        id: p.id,
+        title: p.attributes.title,
+        subtitle: p.attributes.subtitle,
+        body: p.attributes.body || p.attributes.content || "",
+        slug: p.attributes.slug,
+        category: p.attributes.Category.data.attributes.slug || "uncategorised",
+        imageThumb: p.attributes.imageThumb?.data?.attributes?.url
+          ? `${API}${p.attributes.imageThumb.data.attributes.url}`
+          : undefined,
+        imageFull: p.attributes.imageFull?.data?.attributes?.url
+          ? `${API}${p.attributes.imageFull.data.attributes.url}`
+          : undefined,
+      })) || [];
 
   return { props: { active, blocks }, revalidate: 300 };
 };
 
+/* -------- page -------- */
 export default function PhotographySlug({ active, blocks }: Props) {
-  if (!active) return <div className="p-10">Photo not found.</div>;
+  if (!active) return <div className="p-10">Photo not found</div>;
   return <PhotographyPage blocks={blocks} active={active} />;
 }
