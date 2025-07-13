@@ -1,17 +1,17 @@
 import PhotographyPage from "@/components/PhotographyPage";
-import type { PhotoItem } from "@/types/photography";
+import type { PhotographyBlock } from "@/types/photography";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
 interface Props {
-  blocks: PhotoItem[];
+  blocks: PhotographyBlock[];
 }
 
 export async function getStaticProps() {
   const res = await fetch(`${API}/api/photos?populate=*`);
   const raw = await res.json();
 
-  const blocks: PhotoItem[] = raw.data.map((it: any) => ({
+  const blocks: PhotographyBlock[] = raw.data.map((it: any) => ({
     id: it.id,
     title: it.title,
     subtitle: it.subtitle,

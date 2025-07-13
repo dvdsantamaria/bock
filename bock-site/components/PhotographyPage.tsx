@@ -6,11 +6,11 @@ import Link from "next/link";
 import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 
-import type { PhotoItem } from "@/types/photography";
+import type { PhotographyBlock } from "@/types/photography";
 
 interface Props {
-  active: PhotoItem;
-  blocks: PhotoItem[];
+  active: PhotographyBlock;
+  blocks: PhotographyBlock[];
 }
 
 /* ─────────── Tema ─────────── */
