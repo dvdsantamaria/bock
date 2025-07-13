@@ -12,7 +12,7 @@ interface Props {
 /* -------- getStaticPaths (ISR) -------- */
 export const getStaticPaths: GetStaticPaths = async () => {
   const r = await fetch(
-    `${API}/api/photographies` + `?populate[Category][fields][0]=slug`
+    `${API}/api/photographies?populate[Category][fields][0]=slug`
   ).then((x) => x.json());
 
   const paths =
@@ -30,18 +30,18 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
 /* -------- getStaticProps (ISR) -------- */
 export const getStaticProps: GetStaticProps = async ({ params }) => {
-  const slug = params!.slug as string;
+  const { slug } = params as { slug: string };
 
-  // 1️⃣  foto activa
+  // 1️⃣  Entry individual
   const r1 = await fetch(
-    `${API}/api/photographies` +
-      `?filters[slug][$eq]=${slug}` +
-      `&populate[Category][fields][0]=slug` +
-      `&populate[imageThumb][fields][0]=url` +
-      `&populate[imageFull][fields][0]=url`
-  ).then((x) => x.json());
+    `${API}/api/photographies?filters[slug][$eq]=${slug}&populate=*`
+  ).then((r) => r.json());
 
-  if (!r1?.data?.length) return { notFound: true, revalidate: 60 };
+  if (!r1?.data?.length) {
+    return {
+      notFound: true,
+    };
+  }
 
   const it = r1.data[0];
   const active: PhotographyBlock = {
@@ -59,7 +59,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       : undefined,
   };
 
-  // 2️⃣  todas las fotos (sidebar / thumbs)
+  // 2️⃣  Sidebar / thumbnails
   const r2 = await fetch(
     `${API}/api/photographies` +
       `?pagination[pageSize]=100` +
