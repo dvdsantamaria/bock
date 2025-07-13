@@ -1,7 +1,4 @@
-/* components/PhotographyPage.tsx
-   ▸ Soporta datos generados por SSG/ISR (props.blocks)
-   ▸ Si no vienen, los descarga en CSR (hidratación)
-   ▸ Mantiene la navegación y animaciones originales            */
+// components/PhotographyPage.tsx
 
 import React, { useEffect, useState } from "react";
 import Head from "next/head";
@@ -10,7 +7,6 @@ import Link from "next/link";
 import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
-
 import type { PhotographyBlock } from "@/types/photography";
 
 /* ---------- tema ---------- */
@@ -29,9 +25,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 interface Props {
-  /**  ↳ de getStaticProps / SSG  */
   blocks?: PhotographyBlock[];
-  /**  ↳ foto inicial (opcional)  */
   active?: PhotographyBlock;
 }
 
@@ -41,13 +35,11 @@ export default function PhotographyPage({ blocks, active }: Props) {
     slug?: string;
   };
 
-  /* —— estado interno (CSR) —— */
   const [items, setItems] = useState<PhotographyBlock[]>(blocks ?? []);
   const [loading, setLoading] = useState(!blocks);
 
-  /* ---------- CSR fetch (solo si SSG vino vacío) ---------- */
   useEffect(() => {
-    if (blocks?.length) return; // ya tenemos data
+    if (blocks?.length) return;
 
     (async () => {
       try {
@@ -57,7 +49,7 @@ export default function PhotographyPage({ blocks, active }: Props) {
 
         const fetched: PhotographyBlock[] = Array.isArray(res.data)
           ? res.data
-              .filter((it: any) => it.attributes?.Category?.data) // ← ⚠️ FILTRO CRUCIAL
+              .filter((it: any) => it.attributes?.Category?.data)
               .map((it: any) => {
                 const a = it.attributes;
                 return {
@@ -86,7 +78,6 @@ export default function PhotographyPage({ blocks, active }: Props) {
     })();
   }, [blocks]);
 
-  /* ---------- aplicar tema (CSS custom properties) ---------- */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -109,7 +100,6 @@ export default function PhotographyPage({ blocks, active }: Props) {
   const related = items.filter((p) => p.slug !== current.slug);
   const categories = Array.from(new Set(items.map((p) => p.category)));
 
-  /* ---------- UI ---------- */
   return (
     <>
       <Head>
@@ -130,117 +120,39 @@ export default function PhotographyPage({ blocks, active }: Props) {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
-            {/* ───── desplegable móvil ───── */}
-            {related.length > 0 && (
-              <div className="col-span-8 md:hidden px-4 pt-4">
-                <details className="border border-gray-700 rounded-md bg-black">
-                  <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-[var(--menuText)] hover:text-[var(--accent)]">
-                    Gallery
-                  </summary>
-                  <ul className="px-4 py-2 space-y-1">
-                    {related.map((r) => (
-                      <li key={r.slug}>
-                        <Link
-                          href={`/photography/${r.category}/${r.slug}`}
-                          className="block text-sm hover:text-[var(--accent)]"
-                        >
-                          {r.title}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              </div>
-            )}
-
-            {/* ───── foto principal ───── */}
-            <article
-              className="
-                      col-start-1 col-span-8
-                      md:col-start-1 md:col-span-8 md:py-10
-                      lg:col-start-2 lg:col-span-8
-                      text-white space-y-6
-                    "
-            >
+            {/* Foto principal */}
+            <article className="col-start-1 col-span-8 lg:col-start-3 lg:col-span-7 space-y-6 text-white pt-4 md:pt-10">
               {current.imageFull && (
                 <img
                   src={current.imageFull}
                   alt={current.title}
-                  className="w-full rounded-md border border-gray-700 object-cover"
+                  className="w-full max-h-[80vh] object-contain border border-gray-700 rounded-md"
                 />
               )}
-
-              <h1 className="text-3xl font-semibold">{current.title}</h1>
-              {current.subtitle && (
-                <p className="italic text-gray-400">{current.subtitle}</p>
-              )}
-
-              {Array.isArray(current.body)
-                ? current.body.map((block: any, i: number) =>
-                    block.type === "paragraph" ? (
-                      <p key={i}>
-                        {block.children?.map((c: any, j: number) => (
-                          <span key={j}>{c.text}</span>
-                        ))}
-                      </p>
-                    ) : null
-                  )
-                : typeof current.body === "string"
-                ? current.body
-                    .split("\n\n")
-                    .map((p: string, i: number) => <p key={i}>{p}</p>)
-                : null}
+              <p className="italic text-gray-400">{current.title}</p>
             </article>
 
-            {/* ───── galería relacionada debajo (tipo lista) ───── */}
+            {/* Carrusel horizontal (mismo para mobile y desktop) */}
             {related.length > 0 && (
-              <>
-                {/* Mobile: desplegable */}
-                <div className="col-span-8 md:hidden px-4 pt-4">
-                  <details className="border border-gray-300 rounded-md bg-white">
-                    <summary className="cursor-pointer px-4 py-2 text-sm font-semibold hover:text-[var(--accent)]">
-                      Gallery
-                    </summary>
-                    <ul className="px-4 py-2 space-y-1">
-                      {related.map((r) => (
-                        <li key={r.slug}>
-                          <Link
-                            href={`/photography/${r.category}/${r.slug}`}
-                            className="block text-sm hover:text-[var(--accent)]"
-                          >
-                            {r.title}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                </div>
-
-                {/* Desktop: lateral fijo */}
-                <aside className="hidden md:block col-start-10 col-span-2 pt-[42px]">
-                  <h3 className="uppercase tracking-wider text-sm mb-4">
-                    Gallery
-                  </h3>
-                  <ul className="space-y-4">
-                    {related.map((r) => (
-                      <li key={r.slug}>
-                        <Link href={`/photography/${r.category}/${r.slug}`}>
-                          {r.imageThumb && (
-                            <img
-                              src={r.imageThumb}
-                              alt={r.title}
-                              className="w-full aspect-video object-cover rounded-md border border-gray-700 hover:border-[var(--accent)] transition"
-                            />
-                          )}
-                          <span className="mt-1 block text-xs leading-snug hover:text-[var(--accent)]">
-                            {r.title}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </aside>
-              </>
+              <div className="col-span-8 lg:col-start-3 lg:col-span-7 pt-6">
+                <ul className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide">
+                  {related.map((r) => (
+                    <li key={r.id} className="shrink-0 w-40">
+                      <Link
+                        href={`/photography/${r.category}/${r.slug}`}
+                        scroll={false}
+                        className="block"
+                      >
+                        <img
+                          src={r.imageThumb}
+                          alt={r.title}
+                          className="w-full aspect-video object-cover rounded-md border border-gray-700 hover:border-[var(--accent)] transition"
+                        />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
             <Footer />
