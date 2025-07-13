@@ -10,7 +10,7 @@ interface Props {
 export async function getStaticProps() {
   try {
     const r = await fetch(
-      `${API}/api/photographies?populate=Category,imageThumb,imageFull&pagination[pageSize]=100`
+      `${API}/api/photographies?pagination[pageSize]=100&populate[Category][fields][0]=slug&populate[imageThumb][fields][0]=url&populate[imageFull][fields][0]=url`
     ).then((x) => x.json());
 
     const blocks: PhotographyBlock[] =

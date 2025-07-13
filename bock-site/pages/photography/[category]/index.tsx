@@ -18,7 +18,7 @@ export default function PhotographyCategoryRedirect() {
     (async () => {
       try {
         const res = await fetch(
-          `${API}/api/photographies?populate=Category,imageThumb,imageFull&filters[Category][slug][$eq]=${category}&pagination[pageSize]=100`
+          `${API}/api/photographies?filters[Category][slug][$eq]=${category}&pagination[pageSize]=100&populate[Category][fields][0]=slug&populate[imageThumb][fields][0]=url&populate[imageFull][fields][0]=url`
         );
         const json = await res.json();
 

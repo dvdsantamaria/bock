@@ -11,9 +11,9 @@ interface Props {
 
 /* ---------- paths ---------- */
 export const getStaticPaths: GetStaticPaths = async () => {
-  const r = await fetch(`${API}/api/photographies?populate=Category`).then(
-    (x) => x.json()
-  );
+  const r = await fetch(
+    `${API}/api/photographies?populate[Category][fields][0]=slug`
+  ).then((x) => x.json());
 
   const paths =
     r?.data
@@ -34,7 +34,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
 
   // bloque activo
   const r1 = await fetch(
-    `${API}/api/photographies?populate=Category,imageThumb,imageFull&filters[slug][$eq]=${slug}`
+    `${API}/api/photographies?filters[slug][$eq]=${slug}&populate[Category][fields][0]=slug&populate[imageThumb][fields][0]=url&populate[imageFull][fields][0]=url`
   ).then((x) => x.json());
 
   if (!r1?.data?.length) return { notFound: true, revalidate: 60 };
