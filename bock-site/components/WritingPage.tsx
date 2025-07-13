@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
 interface Article {
-  id: number;
+  id: number | string; // ← antes era solo number
   title: string;
   subtitle?: string;
   body: any;
@@ -16,7 +16,7 @@ interface Article {
 }
 
 interface Intro extends Article {
-  id: "intro";
+  id: "intro"; // ahora es compatible
   category: "intro";
 }
 
