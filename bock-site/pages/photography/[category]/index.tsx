@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import type { PhotoItem } from "@/types/photography";
+import type { PhotographyBlock } from "@/types/photography";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
 export default function PhotographyCategoryRedirect() {
   const router = useRouter();
   const { category } = router.query as { category?: string };
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [photos, setPhotos] = useState<PhotographyBlock[]>([]);
 
   useEffect(() => {
     if (!category) return;
@@ -17,7 +17,7 @@ export default function PhotographyCategoryRedirect() {
         const res = await fetch(`${API}/api/photos?populate=*`);
         const raw = await res.json();
 
-        const allPhotos: PhotoItem[] = raw.data.map((it: any) => ({
+        const allPhotos: PhotographyBlock[] = raw.data.map((it: any) => ({
           id: it.id,
           title: it.title,
           subtitle: it.subtitle,
