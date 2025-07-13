@@ -1,26 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import type { Intro, Article, LinkItem } from "@/types/writing";
 
-interface Article {
-  id: number | string; // ← antes era solo number
-  title: string;
-  subtitle?: string;
-  body: any;
-  slug: string;
-  category: string;
+interface Props {
+  active: Intro | Article;
+  related: LinkItem[];
+  categories: string[];
+  articles: Article[];
 }
-
-interface Intro extends Article {
-  id: "intro"; // ahora es compatible
-  category: "intro";
-}
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
 const theme = {
   background: "#ffffff",
@@ -33,59 +25,39 @@ const theme = {
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
-export default function WritingPage() {
+export default function WritingPage({
+  active: initialActive,
+  related: initialRelated,
+  categories,
+  articles,
+}: Props) {
   const { category, slug } = useRouter().query as {
     category?: string;
     slug?: string;
   };
 
-  const [intro, setIntro] = useState<Intro | null>(null);
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  /* ---------- decide activo dinámicamente ---------- */
+  const byCategory = (cat: string) =>
+    articles.filter((a) => a.category === cat);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const introRaw = (
-          await (await fetch(`${API}/api/writing-intro`)).json()
-        ).data;
-        setIntro({
-          id: "intro",
-          title: introRaw.name || introRaw.title,
-          subtitle: introRaw.subtitle,
-          body: introRaw.content || introRaw.body,
-          category: "intro",
-          slug: introRaw.slug,
-        });
+  let active: Intro | Article = initialActive;
+  if (slug && category) {
+    active =
+      byCategory(category).find((a) => a.slug === slug) ??
+      byCategory(category)[0] ??
+      initialActive;
+  } else if (category) {
+    active = byCategory(category)[0] ?? initialActive;
+  }
 
-        const artRaw = (
-          await (
-            await fetch(
-              `${API}/api/writings?populate=*&pagination[pageSize]=100`
-            )
-          ).json()
-        ).data;
-
-        setArticles(
-          artRaw.map(
-            (it: any): Article => ({
-              id: it.id,
-              title: it.title,
-              subtitle: it.subtitle,
-              body: it.body || it.content,
-              slug: it.slug,
-              category: it.Category?.slug || "uncategorised",
-            })
-          )
+  const related =
+    active === initialActive
+      ? initialRelated
+      : byCategory((active as Article).category).filter(
+          (a) => a.slug !== (active as Article).slug
         );
-      } catch (err) {
-        console.error("Error fetching writings:", err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
 
+  /* ---------- tema ---------- */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -95,32 +67,7 @@ export default function WritingPage() {
       Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
-  if (loading || !intro) return <div className="p-10">Loading…</div>;
-
-  const byCategory = (cat: string) =>
-    articles.filter((a) => a.category === cat);
-
-  let active: Intro | Article = intro;
-  if (slug && category) {
-    active =
-      byCategory(category).find((a) => a.slug === slug) ??
-      byCategory(category)[0] ??
-      intro;
-  } else if (category) {
-    active = byCategory(category)[0] ?? intro;
-  }
-
-  const related =
-    active === intro
-      ? articles
-      : byCategory((active as Article).category).filter(
-          (a) => a.slug !== (active as Article).slug
-        );
-
-  const categories = Array.from(
-    new Set(articles.map((a) => a.category))
-  ).sort();
-
+  /* ---------- render ---------- */
   return (
     <>
       <Head>
@@ -141,6 +88,7 @@ export default function WritingPage() {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
+            {/* dropdown móvil */}
             {related.length > 0 && (
               <div className="col-span-8 md:hidden px-4 pt-4">
                 <details className="border border-gray-300 rounded-md bg-white">
@@ -163,6 +111,7 @@ export default function WritingPage() {
               </div>
             )}
 
+            {/* artículo */}
             <article
               className="
                 col-start-1 col-span-8
@@ -193,6 +142,7 @@ export default function WritingPage() {
                 : null}
             </article>
 
+            {/* aside desktop */}
             {related.length > 0 && (
               <aside className="hidden md:block col-start-10 col-span-2 md:pt-[42px]">
                 <h3

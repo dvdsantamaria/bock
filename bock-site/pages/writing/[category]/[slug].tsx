@@ -1,4 +1,5 @@
 import WritingPage from "@/components/WritingPage";
+import type { Intro, Article, LinkItem } from "@/types/writing";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
