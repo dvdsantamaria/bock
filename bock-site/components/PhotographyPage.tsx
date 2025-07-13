@@ -1,12 +1,16 @@
-/* components/PhotographyPage.tsx */
+/* components/PhotographyPage.tsx
+   ▸ Soporta datos generados por SSG/ISR (props.blocks)
+   ▸ Si no vienen, los descarga en CSR (hidratación)
+   ▸ Mantiene la navegación y animaciones originales            */
+
 import React, { useEffect, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-
 import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
+import { motion, AnimatePresence } from "framer-motion";
+
 import type { PhotographyBlock } from "@/types/photography";
 
 /* ---------- tema ---------- */
@@ -20,12 +24,14 @@ const theme = {
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+
+/* ---------- helpers ---------- */
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 interface Props {
-  /** Vienen prerenderizadas con `getStaticProps` */
+  /**  ↳ de getStaticProps / SSG  */
   blocks?: PhotographyBlock[];
-  /** Para detalle pre-seleccionado (getStaticProps / rutas dinámicas) */
+  /**  ↳ foto inicial (opcional)  */
   active?: PhotographyBlock;
 }
 
@@ -35,47 +41,50 @@ export default function PhotographyPage({ blocks, active }: Props) {
     slug?: string;
   };
 
-  /* ---------- estado ---------- */
+  /* —— estado interno (CSR) —— */
   const [items, setItems] = useState<PhotographyBlock[]>(blocks ?? []);
-  const [loading, setWait] = useState(!blocks);
+  const [loading, setLoading] = useState(!blocks);
 
-  /* ---------- CSR fallback ---------- */
+  /* ---------- CSR fetch (solo si SSG vino vacío) ---------- */
   useEffect(() => {
-    if (blocks) return; // ya vino por SSG
+    if (blocks?.length) return; // ya tenemos data
 
     (async () => {
       try {
-        const json = await fetch(
+        const res = await fetch(
           `${API}/api/photographies?populate=Category,imageThumb,imageFull&pagination[pageSize]=100`
         ).then((r) => r.json());
 
-        setItems(
-          json.data.map(
-            (it: any): PhotographyBlock => ({
-              id: it.id,
-              title: it.title,
-              subtitle: it.subtitle,
-              body: it.body || it.content || "",
-              slug: it.slug,
-              category: it.Category?.slug || "uncategorised",
-              imageThumb: it.imageThumb?.url
-                ? `${API}${it.imageThumb.url}`
-                : undefined,
-              imageFull: it.imageFull?.url
-                ? `${API}${it.imageFull.url}`
-                : undefined,
+        const fetched: PhotographyBlock[] = Array.isArray(res.data)
+          ? res.data.map((it: any) => {
+              const a = it.attributes;
+              return {
+                id: it.id,
+                title: a.title,
+                subtitle: a.subtitle ?? "",
+                body: a.body ?? a.content ?? "",
+                slug: a.slug,
+                category: a.category?.data?.attributes?.slug ?? "uncategorised",
+                imageThumb: a.imageThumb?.data?.attributes?.url
+                  ? `${API}${a.imageThumb.data.attributes.url}`
+                  : undefined,
+                imageFull: a.imageFull?.data?.attributes?.url
+                  ? `${API}${a.imageFull.data.attributes.url}`
+                  : undefined,
+              };
             })
-          )
-        );
+          : [];
+
+        setItems(fetched);
       } catch (err) {
-        console.error("⚠️ fetch photographs:", err);
+        console.error("Error fetching photographs:", err);
       } finally {
-        setWait(false);
+        setLoading(false);
       }
     })();
   }, [blocks]);
 
-  /* ---------- tema CSS-vars ---------- */
+  /* ---------- aplicar tema (CSS custom properties) ---------- */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -85,15 +94,16 @@ export default function PhotographyPage({ blocks, active }: Props) {
       Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
-  /* ---------- early-states ---------- */
   if (loading) return <div className="p-10">Loading…</div>;
   if (!items.length) return <div className="p-10">No photos found.</div>;
 
-  /* ---------- current / related ---------- */
-  let current = active ?? items[0];
+  /* ---------- decidir foto activa ---------- */
+  let current: PhotographyBlock = active ?? items[0];
   if (slug && category) {
-    current = items.find((p) => p.slug === `${category}/${slug}`) ?? current;
+    current =
+      items.find((p) => p.slug === slug && p.category === category) ?? current;
   }
+
   const related = items.filter((p) => p.slug !== current.slug);
   const categories = Array.from(new Set(items.map((p) => p.category)));
 
@@ -118,11 +128,11 @@ export default function PhotographyPage({ blocks, active }: Props) {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
-            {/* ---------- móvil ---------- */}
+            {/* ───── desplegable móvil ───── */}
             {related.length > 0 && (
               <div className="col-span-8 md:hidden px-4 pt-4">
-                <details className="border border-gray-300 rounded-md bg-white">
-                  <summary className="cursor-pointer px-4 py-2 text-sm font-semibold hover:text-[var(--accent)]">
+                <details className="border border-gray-700 rounded-md bg-black">
+                  <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-[var(--menuText)] hover:text-[var(--accent)]">
                     Gallery
                   </summary>
                   <ul className="px-4 py-2 space-y-1">
@@ -141,8 +151,15 @@ export default function PhotographyPage({ blocks, active }: Props) {
               </div>
             )}
 
-            {/* ---------- principal ---------- */}
-            <article className="col-start-1 col-span-8 md:py-10 lg:col-start-2 lg:col-span-8 text-white space-y-6">
+            {/* ───── foto principal ───── */}
+            <article
+              className="
+                      col-start-1 col-span-8
+                      md:col-start-1 md:col-span-8 md:py-10
+                      lg:col-start-2 lg:col-span-8
+                      text-white space-y-6
+                    "
+            >
               {current.imageFull && (
                 <img
                   src={current.imageFull}
@@ -157,7 +174,7 @@ export default function PhotographyPage({ blocks, active }: Props) {
               )}
 
               {Array.isArray(current.body)
-                ? current.body.map((block: any, i) =>
+                ? current.body.map((block: any, i: number) =>
                     block.type === "paragraph" ? (
                       <p key={i}>
                         {block.children?.map((c: any, j: number) => (
@@ -166,10 +183,14 @@ export default function PhotographyPage({ blocks, active }: Props) {
                       </p>
                     ) : null
                   )
-                : current.body.split("\n\n").map((p, i) => <p key={i}>{p}</p>)}
+                : typeof current.body === "string"
+                ? current.body
+                    .split("\n\n")
+                    .map((p: string, i: number) => <p key={i}>{p}</p>)
+                : null}
             </article>
 
-            {/* ---------- desktop sidebar ---------- */}
+            {/* ───── sidebar desktop ───── */}
             {related.length > 0 && (
               <aside className="hidden md:block col-start-10 col-span-2 pt-[42px]">
                 <h3 className="uppercase tracking-wider text-sm mb-4">
@@ -178,16 +199,18 @@ export default function PhotographyPage({ blocks, active }: Props) {
                 <ul className="space-y-4">
                   {related.map((r) => (
                     <li key={r.slug}>
-                      <Link href={`/photography/${r.category}/${r.slug}`}>
+                      <Link
+                        href={`/photography/${r.category}/${r.slug}`}
+                        className="group block"
+                      >
                         {r.imageThumb && (
                           <img
                             src={r.imageThumb}
                             alt={r.title}
-                            className="w-full aspect-video object-cover rounded-md border border-gray-700
-                                          hover:border-[var(--accent)] transition"
+                            className="w-full aspect-video object-cover rounded-md border border-gray-700 group-hover:border-[var(--accent)] transition"
                           />
                         )}
-                        <span className="mt-1 block text-xs leading-snug hover:text-[var(--accent)]">
+                        <span className="mt-1 block text-xs leading-snug group-hover:text-[var(--accent)]">
                           {r.title}
                         </span>
                       </Link>

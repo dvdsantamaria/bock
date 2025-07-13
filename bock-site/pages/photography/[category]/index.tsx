@@ -4,7 +4,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/router";
-import type { PhotographyBlock } from "@/types/photography";
+import type { PhotographyBlock } from "@/types/photography"; // ← solo este
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
@@ -13,18 +13,15 @@ export default function PhotographyCategoryRedirect() {
   const { category } = router.query as { category?: string };
 
   useEffect(() => {
-    /* Aún sin hidratar → salir */
-    if (!category) return;
+    if (!category) return; // aún sin hidratar
 
     (async () => {
       try {
-        /* Solo entradas cuya relación Category coincide con el slug */
         const res = await fetch(
           `${API}/api/photographies?populate=Category,imageThumb,imageFull&filters[Category][slug][$eq]=${category}&pagination[pageSize]=100`
         );
         const json = await res.json();
 
-        /* Map a nuestro tipo fuerte */
         const photos: PhotographyBlock[] = Array.isArray(json.data)
           ? json.data.map((it: any) => {
               const a = it.attributes;
@@ -45,7 +42,6 @@ export default function PhotographyCategoryRedirect() {
             })
           : [];
 
-        /* Si existen fotos, redirige; si no, vuelve al índice */
         if (photos.length) {
           const random = photos[Math.floor(Math.random() * photos.length)];
           router.replace(`/photography/${random.category}/${random.slug}`);
@@ -59,6 +55,5 @@ export default function PhotographyCategoryRedirect() {
     })();
   }, [category, router]);
 
-  /* Nada visible mientras decide adónde ir */
-  return null;
+  return null; // nada visible
 }
