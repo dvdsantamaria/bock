@@ -1,93 +1,146 @@
 /* pages/photography/[category]/[slug].tsx
-   – Construye todas las rutas en build (SSG) y revalida cada 5 min. */
+   Páginas de detalle para cada foto                                       */
 
-import type { GetStaticPaths, GetStaticProps } from "next";
-import PhotographyPage from "@/components/PhotographyPage";
+import { GetStaticPaths, GetStaticProps } from "next";
+import Head from "next/head";
+import Link from "next/link";
 import type { PhotographyBlock } from "@/types/photography";
+import { useRouter } from "next/router";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-/* ---------- SSG: rutas ---------- */
-export const getStaticPaths: GetStaticPaths = async () => {
-  /* Pedimos SOLO los slugs + categoría para todas las fotos */
-  const res = await fetch(
-    `${API}/api/photographies?populate=Category&pagination[pageSize]=1000&fields=slug`
+/* ------------- helpers ------------- */
+const mapItem = (it: any): PhotographyBlock => {
+  const at = it?.attributes ?? it; // v5 usa .attributes, v4 no
+  return {
+    id: it.id,
+    title: at.title ?? "",
+    subtitle: at.subtitle ?? "",
+    body: at.body ?? at.content ?? "",
+    slug: at.slug ?? "",
+    category:
+      at.Category?.data?.attributes?.slug ??
+      at.Category?.slug ??
+      "uncategorised",
+    imageThumb: at.imageThumb?.data?.attributes?.url
+      ? `${API}${at.imageThumb.data.attributes.url}`
+      : at.imageThumb?.url
+      ? `${API}${at.imageThumb.url}`
+      : undefined,
+    imageFull: at.imageFull?.data?.attributes?.url
+      ? `${API}${at.imageFull.data.attributes.url}`
+      : at.imageFull?.url
+      ? `${API}${at.imageFull.url}`
+      : undefined,
+  };
+};
+
+/* ------------- página ------------- */
+interface Props {
+  photo: PhotographyBlock | null;
+  all: PhotographyBlock[]; // para el listado lateral (si lo necesitas)
+}
+
+export default function PhotographySlugPage({ photo, all }: Props) {
+  const router = useRouter();
+  if (router.isFallback) return <div className="p-10">Loading…</div>;
+  if (!photo) return <div className="p-10">Photo not found</div>;
+
+  return (
+    <>
+      <Head>
+        <title>{photo.title}</title>
+      </Head>
+
+      <main className="p-10 space-y-6 text-white">
+        {photo.imageFull && (
+          <img
+            src={photo.imageFull}
+            alt={photo.title}
+            className="w-full rounded-md border border-gray-700 object-cover"
+          />
+        )}
+
+        <h1 className="text-3xl font-semibold">{photo.title}</h1>
+        {photo.subtitle && (
+          <p className="italic text-gray-400">{photo.subtitle}</p>
+        )}
+
+        {typeof photo.body === "string"
+          ? photo.body.split("\n\n").map((p, i) => <p key={i}>{p}</p>)
+          : Array.isArray(photo.body)
+          ? photo.body.map((b: any, i: number) =>
+              b.type === "paragraph" ? (
+                <p key={i}>
+                  {b.children?.map((c: any, j: number) => (
+                    <span key={j}>{c.text}</span>
+                  ))}
+                </p>
+              ) : null
+            )
+          : null}
+
+        {/* Ejemplo de listado sencillo con las demás fotos (opcional) */}
+        {all.length > 1 && (
+          <>
+            <hr className="border-gray-600 my-8" />
+            <h3 className="text-xl mb-2">More photos</h3>
+            <ul className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              {all
+                .filter((p) => p.slug !== photo.slug)
+                .map((p) => (
+                  <li key={p.slug}>
+                    <Link
+                      href={`/photography/${p.category}/${p.slug}`}
+                      className="hover:text-amber-400"
+                    >
+                      {p.title}
+                    </Link>
+                  </li>
+                ))}
+            </ul>
+          </>
+        )}
+      </main>
+    </>
   );
+}
+
+/* ------------- getStaticPaths ------------- */
+export const getStaticPaths: GetStaticPaths = async () => {
+  const res = await fetch(`${API}/api/photographies?populate=Category`);
   const json = await res.json();
 
   const paths =
-    Array.isArray(json.data) && json.data.length
-      ? json.data.map((it: any) => ({
-          params: {
-            category:
-              it.attributes.Category?.data?.attributes?.slug ?? "uncategorised",
-            slug: it.attributes.slug,
-          },
-        }))
-      : [];
+    json?.data?.map((it: any) => {
+      const at = it.attributes ?? it;
+      const cat =
+        at.Category?.data?.attributes?.slug ??
+        at.Category?.slug ??
+        "uncategorised";
+      const [category, slug] = at.slug?.includes("/")
+        ? at.slug.split("/")
+        : [cat, at.slug];
+      return { params: { category, slug } };
+    }) ?? [];
 
-  return { paths, fallback: "blocking" };
+  return { paths, fallback: true };
 };
 
-/* ---------- SSG: datos de la página ---------- */
+/* ------------- getStaticProps ------------- */
 export const getStaticProps: GetStaticProps = async ({ params }) => {
-  const { category, slug } = params as {
-    category: string;
-    slug: string;
-  };
-
-  /* Traemos TODAS las fotos (para sidebar/relacionados)           */
-  /* Podrías paginar aquí si la colección crece mucho.             */
-  const allRes = await fetch(
-    `${API}/api/photographies?populate=Category,imageThumb,imageFull&pagination[pageSize]=1000`
+  const res = await fetch(
+    `${API}/api/photographies?populate=Category,imageThumb,imageFull&pagination[pageSize]=100`
   );
-  const allJson = await allRes.json();
+  const json = await res.json();
 
-  const all: PhotographyBlock[] = Array.isArray(allJson.data)
-    ? allJson.data.map((it: any) => {
-        const a = it.attributes;
-        return {
-          id: it.id,
-          title: a.title,
-          subtitle: a.subtitle ?? "",
-          body: a.body ?? a.content ?? "",
-          slug: a.slug,
-          category: a.Category?.data?.attributes?.slug ?? "uncategorised",
-          imageThumb: a.imageThumb?.data?.attributes?.url
-            ? `${API}${a.imageThumb.data.attributes.url}`
-            : undefined,
-          imageFull: a.imageFull?.data?.attributes?.url
-            ? `${API}${a.imageFull.data.attributes.url}`
-            : undefined,
-        };
-      })
-    : [];
+  const all: PhotographyBlock[] = (json?.data ?? []).map(mapItem);
 
-  /* Buscamos el bloque que coincide con slug & category */
-  const block =
-    all.find((p) => p.slug === slug && p.category === category) ?? null;
-
-  if (!block) {
-    /* Si Strapi no lo devuelve => 404 en build y runtime */
-    return { notFound: true, revalidate: 60 };
-  }
+  const targetSlug = `${params?.category}/${params?.slug}`;
+  const photo = all.find((p) => p.slug === targetSlug) || null;
 
   return {
-    props: {
-      block,
-      blocks: all,
-    },
-    revalidate: 300, // 5 min – se vuelve a generar en segundo plano
+    props: { photo, all },
+    revalidate: 300, // 5 min
   };
 };
-
-/* ---------- Componente de la página ---------- */
-interface Props {
-  block: PhotographyBlock;
-  blocks: PhotographyBlock[];
-}
-
-export default function PhotographySlugPage({ block, blocks }: Props) {
-  /* Pasamos la foto actual como `active` y toda la lista para sidebar */
-  return <PhotographyPage active={block} blocks={blocks} />;
-}
