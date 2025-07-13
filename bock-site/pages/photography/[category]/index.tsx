@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+/* pages/photography/[category]/index.tsx
+   Cuando entras en /photography/<category> te redirige
+   a una foto aleatoria de esa categoría                    */
+
+import { useEffect } from "react";
 import { useRouter } from "next/router";
 import type { PhotographyBlock } from "@/types/photography";
 
@@ -7,22 +11,24 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 export default function PhotographyCategoryRedirect() {
   const router = useRouter();
   const { category } = router.query as { category?: string };
-  const [photos, setPhotos] = useState<PhotographyBlock[]>([]);
 
   useEffect(() => {
-    if (!category) return;
+    if (!category) return; // todavía sin hidratar
 
     (async () => {
       try {
-        const res = await fetch(`${API}/api/photos?populate=*`);
-        const raw = await res.json();
+        /* sólo fotos de esa categoría */
+        const res = await fetch(
+          `${API}/api/photographies?populate=Category&filters[Category][slug][$eq]=${category}&pagination[pageSize]=100`
+        ).then((r) => r.json());
 
-        const allPhotos: PhotographyBlock[] = raw.data.map((it: any) => ({
+        const photos: PhotographyBlock[] = res.data.map((it: any) => ({
           id: it.id,
           title: it.title,
           subtitle: it.subtitle,
           body: it.body || it.content,
           slug: it.slug,
+          category: it.Category?.slug || "uncategorised",
           imageThumb: it.imageThumb?.url
             ? `${API}${it.imageThumb.url}`
             : undefined,
@@ -31,19 +37,19 @@ export default function PhotographyCategoryRedirect() {
             : undefined,
         }));
 
-        const filtered = allPhotos.filter((p) => p.slug.startsWith(category));
-        if (filtered.length) {
-          const random = filtered[Math.floor(Math.random() * filtered.length)];
-          router.replace(`/photography/${category}/${random.slug}`);
+        if (photos.length) {
+          const random = photos[Math.floor(Math.random() * photos.length)];
+          router.replace(`/photography/${random.category}/${random.slug}`);
         } else {
           router.replace("/photography");
         }
       } catch (err) {
-        console.error("Failed to fetch photos", err);
+        console.error("Failed to fetch photos:", err);
         router.replace("/photography");
       }
     })();
   }, [category, router]);
 
+  /* Nada en pantalla mientras decide dónde ir */
   return null;
 }
