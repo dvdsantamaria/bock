@@ -56,23 +56,25 @@ export default function PhotographyPage({ blocks, active }: Props) {
         ).then((r) => r.json());
 
         const fetched: PhotographyBlock[] = Array.isArray(res.data)
-          ? res.data.map((it: any) => {
-              const a = it.attributes;
-              return {
-                id: it.id,
-                title: a.title,
-                subtitle: a.subtitle ?? "",
-                body: a.body ?? a.content ?? "",
-                slug: a.slug,
-                category: a.category?.data?.attributes?.slug ?? "uncategorised",
-                imageThumb: a.imageThumb?.data?.attributes?.url
-                  ? `${API}${a.imageThumb.data.attributes.url}`
-                  : undefined,
-                imageFull: a.imageFull?.data?.attributes?.url
-                  ? `${API}${a.imageFull.data.attributes.url}`
-                  : undefined,
-              };
-            })
+          ? res.data
+              .filter((it: any) => it.attributes?.Category?.data) // ← ⚠️ FILTRO CRUCIAL
+              .map((it: any) => {
+                const a = it.attributes;
+                return {
+                  id: it.id,
+                  title: a.title,
+                  subtitle: a.subtitle ?? "",
+                  body: a.body ?? a.content ?? "",
+                  slug: a.slug,
+                  category: a.Category.data.attributes.slug ?? "uncategorised",
+                  imageThumb: a.imageThumb?.data?.attributes?.url
+                    ? `${API}${a.imageThumb.data.attributes.url}`
+                    : undefined,
+                  imageFull: a.imageFull?.data?.attributes?.url
+                    ? `${API}${a.imageFull.data.attributes.url}`
+                    : undefined,
+                };
+              })
           : [];
 
         setItems(fetched);

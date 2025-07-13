@@ -16,13 +16,14 @@ export const getStaticPaths: GetStaticPaths = async () => {
   );
 
   const paths =
-    r?.data?.map((it: any) => ({
-      params: {
-        category:
-          it.attributes.Category?.data?.attributes?.slug || "uncategorised",
-        slug: it.attributes.slug,
-      },
-    })) || [];
+    r?.data
+      ?.filter((it: any) => it.attributes?.Category?.data)
+      .map((it: any) => ({
+        params: {
+          category: it.attributes.Category.data.attributes.slug,
+          slug: it.attributes.slug,
+        },
+      })) || [];
 
   return { paths, fallback: "blocking" };
 };
@@ -60,21 +61,22 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   ).then((x) => x.json());
 
   const blocks: PhotographyBlock[] =
-    r2?.data?.map((p: any) => ({
-      id: p.id,
-      title: p.attributes.title,
-      subtitle: p.attributes.subtitle,
-      body: p.attributes.body || p.attributes.content || "",
-      slug: p.attributes.slug,
-      category:
-        p.attributes.Category?.data?.attributes?.slug || "uncategorised",
-      imageThumb: p.attributes.imageThumb?.data?.attributes?.url
-        ? `${API}${p.attributes.imageThumb.data.attributes.url}`
-        : undefined,
-      imageFull: p.attributes.imageFull?.data?.attributes?.url
-        ? `${API}${p.attributes.imageFull.data.attributes.url}`
-        : undefined,
-    })) || [];
+    r2?.data
+      ?.filter((p: any) => p.attributes?.Category?.data) // ← filtro robusto
+      .map((p: any) => ({
+        id: p.id,
+        title: p.attributes.title,
+        subtitle: p.attributes.subtitle,
+        body: p.attributes.body || p.attributes.content || "",
+        slug: p.attributes.slug,
+        category: p.attributes.Category.data.attributes.slug || "uncategorised",
+        imageThumb: p.attributes.imageThumb?.data?.attributes?.url
+          ? `${API}${p.attributes.imageThumb.data.attributes.url}`
+          : undefined,
+        imageFull: p.attributes.imageFull?.data?.attributes?.url
+          ? `${API}${p.attributes.imageFull.data.attributes.url}`
+          : undefined,
+      })) || [];
 
   return { props: { active, blocks }, revalidate: 300 };
 };
