@@ -192,27 +192,27 @@ export default function PhotographyPage({ blocks, active }: Props) {
                 : null}
             </article>
 
-            {/* ───── galería relacionada debajo ───── */}
+            {/* ───── galería relacionada debajo (tipo lista) ───── */}
             {related.length > 0 && (
-              <section className="col-span-8 md:col-span-12 pt-10">
-                <h3 className="uppercase tracking-wider text-sm mb-4 px-4 md:px-0">
+              <section className="col-span-8 md:col-span-12 pt-10 space-y-4 px-4 md:px-0">
+                <h3 className="uppercase tracking-wider text-sm mb-2 text-white">
                   Gallery
                 </h3>
-                <ul className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
+                <ul className="flex flex-col gap-4">
                   {related.map((r) => (
                     <li key={r.slug}>
                       <Link
                         href={`/photography/${r.category}/${r.slug}`}
-                        className="group block"
+                        className="group flex items-center gap-4"
                       >
                         {r.imageThumb && (
                           <img
                             src={r.imageThumb}
                             alt={r.title}
-                            className="w-full aspect-video object-cover rounded-md border border-gray-700 group-hover:border-[var(--accent)] transition"
+                            className="w-32 aspect-video object-cover rounded-md border border-gray-700 group-hover:border-[var(--accent)] transition"
                           />
                         )}
-                        <span className="mt-1 block text-xs leading-snug text-white group-hover:text-[var(--accent)]">
+                        <span className="text-sm text-white group-hover:text-[var(--accent)]">
                           {r.title}
                         </span>
                       </Link>
