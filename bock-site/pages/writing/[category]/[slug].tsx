@@ -1,40 +1,87 @@
-import { useRouter } from "next/router";
-import writingJson from "@/data/writing.json";
-import dynamic from "next/dynamic";
+import WritingPage from "@/components/WritingPage";
 
-/* carga diferida */
-const WritingPage = dynamic(() => import("@/components/WritingPage"), {
-  ssr: false,
-}) as any; //  ←  🟢 permitimos props extra
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-const toSlug = (str: string) =>
-  str
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^\w-]+/g, "");
+export async function getStaticPaths() {
+  const res = await fetch(`${API}/api/writings?populate=Category`);
+  const data = await res.json();
 
-export default function WritingDetail() {
-  const { query } = useRouter();
-  const { category, slug } = query as { category?: string; slug?: string };
+  const paths = data.data.map((item: any) => ({
+    params: {
+      category: item.Category?.slug || "uncategorised",
+      slug: item.slug,
+    },
+  }));
 
-  if (!category || !slug) return null;
+  return { paths, fallback: false };
+}
 
-  const { intro, articles } = writingJson as any;
+export async function getStaticProps({ params }: any) {
+  const { category, slug } = params;
+
+  // Intro
+  const introRaw = await fetch(`${API}/api/writing-intro`).then((res) =>
+    res.json()
+  );
+  const introData = introRaw.data;
+  const intro = {
+    id: "intro",
+    title: introData.name || introData.title,
+    subtitle: introData.subtitle || null,
+    body: introData.content || introData.body,
+    slug: introData.slug,
+    category: "intro",
+  };
+
+  // Articles
+  const artRaw = await fetch(
+    `${API}/api/writings?populate=*&pagination[pageSize]=100`
+  ).then((res) => res.json());
+
+  const articles = artRaw.data.map((it: any) => ({
+    id: it.id,
+    title: it.title,
+    subtitle: it.subtitle,
+    body: it.body || it.content,
+    slug: it.slug,
+    category: it.Category?.slug || "uncategorised",
+  }));
 
   const article =
-    articles.find((a: any) => a.slug === slug && a.category === category) ??
-    intro;
+    articles.find((a) => a.slug === slug && a.category === category) ?? intro;
 
   const related = articles
-    .filter((a: any) => a.category === category && a.slug !== slug)
-    .map((a: any) => ({
+    .filter((a) => a.category === category && a.slug !== slug)
+    .map((a) => ({
       label: a.title,
       href: `/writing/${a.category}/${a.slug}`,
     }));
 
-  const categories = Array.from(new Set(articles.map((a: any) => a.category)));
+  const categories = Array.from(new Set(articles.map((a) => a.category)));
 
+  return {
+    props: {
+      active: article,
+      related,
+      categories,
+      articles,
+    },
+    revalidate: 60,
+  };
+}
+
+export default function WritingDetailPage({
+  active,
+  related,
+  categories,
+  articles,
+}: any) {
   return (
-    <WritingPage active={article} related={related} categories={categories} />
+    <WritingPage
+      active={active}
+      related={related}
+      categories={categories}
+      articles={articles}
+    />
   );
 }

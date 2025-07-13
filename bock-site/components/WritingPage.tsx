@@ -1,5 +1,4 @@
-/* components/WritingPage.tsx */
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import MainLayout from "@/components/MainLayout";
@@ -26,9 +25,13 @@ interface Intro {
   category: "intro";
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+interface Props {
+  intro: Intro;
+  articles: Article[];
+}
 
-/* ---------- tema ---------- */
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+
 const theme = {
   background: "#ffffff",
   accent: "#9FD5B9",
@@ -38,61 +41,12 @@ const theme = {
   sectionColor: "#808080",
 };
 
-/* ---------- helper ---------- */
-const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
-
-export default function WritingPage() {
+export default function WritingPage({ intro, articles }: Props) {
   const { category, slug } = useRouter().query as {
     category?: string;
     slug?: string;
   };
 
-  const [intro, setIntro] = useState<Intro | null>(null);
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  /* fetch Strapi */
-  useEffect(() => {
-    (async () => {
-      try {
-        const introRaw = (
-          await (await fetch(`${API}/api/writing-intro`)).json()
-        ).data;
-        setIntro({
-          id: "intro",
-          title: introRaw.name || introRaw.title,
-          subtitle: introRaw.subtitle,
-          body: introRaw.content || introRaw.body,
-          category: "intro",
-          slug: introRaw.slug,
-        });
-
-        const artRaw = (
-          await (
-            await fetch(
-              `${API}/api/writings?populate=*&pagination[pageSize]=100`
-            )
-          ).json()
-        ).data;
-        setArticles(
-          artRaw.map((it: any) => ({
-            id: it.id,
-            title: it.title,
-            subtitle: it.subtitle,
-            body: it.body || it.content,
-            slug: it.slug,
-            category: it.Category?.slug || "uncategorised",
-          }))
-        );
-      } catch (err) {
-        console.error("Error fetching writings:", err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  /* tema → custom-props */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -102,13 +56,9 @@ export default function WritingPage() {
       Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
-  if (loading || !intro) return <div className="p-10">Loading…</div>;
-
-  /* util */
   const byCategory = (cat: string) =>
     articles.filter((a) => a.category === cat);
 
-  /* decide activo */
   let active: Intro | Article = intro;
   if (slug && category) {
     active =
@@ -119,7 +69,6 @@ export default function WritingPage() {
     active = byCategory(category)[0] ?? intro;
   }
 
-  /* related */
   const related =
     active === intro
       ? articles
@@ -131,7 +80,6 @@ export default function WritingPage() {
     new Set(articles.map((a) => a.category))
   ).sort();
 
-  /* ---------- render ---------- */
   return (
     <>
       <Head>
