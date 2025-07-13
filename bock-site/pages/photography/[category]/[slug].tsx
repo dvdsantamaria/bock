@@ -32,15 +32,13 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const { slug } = params as { slug: string };
 
-  // 1️⃣  Entry individual
+  // 1️⃣ Fetch photo by slug
   const r1 = await fetch(
     `${API}/api/photographies?filters[slug][$eq]=${slug}&populate=*`
   ).then((r) => r.json());
 
   if (!r1?.data?.length) {
-    return {
-      notFound: true,
-    };
+    return { notFound: true };
   }
 
   const it = r1.data[0];
@@ -59,7 +57,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       : undefined,
   };
 
-  // 2️⃣  Sidebar / thumbnails
+  // 2️⃣ Fetch all photos for sidebar
   const r2 = await fetch(
     `${API}/api/photographies` +
       `?pagination[pageSize]=100` +
@@ -86,7 +84,10 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
           : undefined,
       })) || [];
 
-  return { props: { active, blocks }, revalidate: 300 };
+  return {
+    props: { active, blocks },
+    revalidate: 300,
+  };
 };
 
 /* -------- page -------- */
