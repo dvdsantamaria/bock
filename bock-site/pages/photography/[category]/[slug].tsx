@@ -9,92 +9,88 @@ interface Props {
   active: PhotographyBlock | null;
   blocks: PhotographyBlock[];
 }
-
+/*  -------- paths --------  */
 export const getStaticPaths: GetStaticPaths = async () => {
-  const res = await fetch(
-    `${API}/api/photographies?populate[Category][fields][0]=slug`
-  );
-  const json = await res.json();
+  const { data } = await fetch(
+    `${API}/api/photographies` + `?populate[Category][fields][0]=slug`
+  ).then((r) => r.json());
 
-  const paths = Array.isArray(json.data)
-    ? json.data
-        .filter(
-          (it: any) =>
-            it?.attributes?.Category?.data?.attributes?.slug &&
-            it?.attributes?.slug
-        )
-        .map((it: any) => ({
-          params: {
-            category: it.attributes.Category.data.attributes.slug,
-            slug: it.attributes.slug,
-          },
-        }))
-    : [];
+  const paths =
+    data
+      ?.filter((it: any) => it.attributes?.Category?.data)
+      .map((it: any) => ({
+        params: {
+          category: it.attributes.Category.data.attributes.slug,
+          slug: it.attributes.slug,
+        },
+      })) ?? [];
 
   return { paths, fallback: "blocking" };
 };
 
+/*  -------- props (ISR) --------  */
 export const getStaticProps: GetStaticProps = async ({ params }) => {
-  const slug = params?.slug as string;
+  const slug = params!.slug as string;
 
-  // bloque activo
-  const r1 = await fetch(
-    `${API}/api/photographies?filters[slug][$eq]=${slug}&populate[Category][fields][0]=slug&populate[imageThumb][fields][0]=url&populate[imageFull][fields][0]=url`
-  );
-  const json1 = await r1.json();
+  /* ► foto activa */
+  const { data: activeArr } = await fetch(
+    `${API}/api/photographies` +
+      `?filters[slug][$eq]=${slug}` +
+      `&populate[Category][fields][0]=slug` +
+      `&populate[imageThumb][fields][0]=url` +
+      `&populate[imageFull][fields][0]=url`
+  ).then((r) => r.json());
 
-  if (!json1?.data?.length) return { notFound: true, revalidate: 60 };
+  if (!activeArr?.length) return { notFound: true, revalidate: 60 };
 
-  const it = json1.data[0];
-  const attr = it?.attributes;
-
+  const it = activeArr[0];
+  const a = it.attributes;
   const active: PhotographyBlock = {
     id: it.id,
-    title: attr?.title ?? "",
-    subtitle: attr?.subtitle ?? "",
-    body: attr?.body || attr?.content || "",
-    slug: attr?.slug ?? "",
-    category: attr?.Category?.data?.attributes?.slug || "uncategorised",
-    imageThumb: attr?.imageThumb?.data?.attributes?.url
-      ? `${API}${attr.imageThumb.data.attributes.url}`
+    title: a.title,
+    subtitle: a.subtitle ?? "",
+    body: a.body ?? a.content ?? "",
+    slug: a.slug,
+    category: a.Category?.data?.attributes?.slug ?? "uncategorised",
+    imageThumb: a.imageThumb?.data?.attributes?.url
+      ? `${API}${a.imageThumb.data.attributes.url}`
       : undefined,
-    imageFull: attr?.imageFull?.data?.attributes?.url
-      ? `${API}${attr.imageFull.data.attributes.url}`
+    imageFull: a.imageFull?.data?.attributes?.url
+      ? `${API}${a.imageFull.data.attributes.url}`
       : undefined,
   };
 
-  // todos los bloques (para la galería inferior)
-  const r2 = await fetch(
-    `${API}/api/photographies?populate=Category,imageThumb,imageFull&pagination[pageSize]=100`
-  );
-  const json2 = await r2.json();
+  /* ► todas (para la tira de thumbs) */
+  const { data: list } = await fetch(
+    `${API}/api/photographies` +
+      `?pagination[pageSize]=100` +
+      `&populate[Category][fields][0]=slug` +
+      `&populate[imageThumb][fields][0]=url` +
+      `&populate[imageFull][fields][0]=url`
+  ).then((r) => r.json());
 
-  const blocks: PhotographyBlock[] = Array.isArray(json2.data)
-    ? json2.data
-        .filter((p: any) => p?.attributes?.Category?.data)
-        .map((p: any) => {
-          const a = p.attributes;
-          return {
-            id: p.id,
-            title: a.title ?? "",
-            subtitle: a.subtitle ?? "",
-            body: a.body || a.content || "",
-            slug: a.slug,
-            category: a.Category?.data?.attributes?.slug || "uncategorised",
-            imageThumb: a.imageThumb?.data?.attributes?.url
-              ? `${API}${a.imageThumb.data.attributes.url}`
-              : undefined,
-            imageFull: a.imageFull?.data?.attributes?.url
-              ? `${API}${a.imageFull.data.attributes.url}`
-              : undefined,
-          };
-        })
-    : [];
+  const blocks: PhotographyBlock[] =
+    list
+      ?.filter((p: any) => p.attributes?.Category?.data)
+      .map((p: any) => {
+        const x = p.attributes;
+        return {
+          id: p.id,
+          title: x.title,
+          subtitle: x.subtitle ?? "",
+          body: x.body ?? x.content ?? "",
+          slug: x.slug,
+          category: x.Category.data.attributes.slug ?? "uncategorised",
+          imageThumb: x.imageThumb?.data?.attributes?.url
+            ? `${API}${x.imageThumb.data.attributes.url}`
+            : undefined,
+          imageFull: x.imageFull?.data?.attributes?.url
+            ? `${API}${x.imageFull.data.attributes.url}`
+            : undefined,
+        };
+      }) ?? [];
 
-  return {
-    props: { active, blocks },
-    revalidate: 300,
-  };
+  return { props: { active, blocks }, revalidate: 300 };
 };
 
 export default function PhotographySlug({ active, blocks }: Props) {

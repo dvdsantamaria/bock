@@ -44,7 +44,11 @@ export default function PhotographyPage({ blocks, active }: Props) {
     (async () => {
       try {
         const res = await fetch(
-          `${API}/api/photographies?pagination[pageSize]=100&populate[Category][fields][0]=slug&populate[imageThumb][fields][0]=url&populate[imageFull][fields][0]=url`
+          `${API}/api/photographies` +
+            `?pagination[pageSize]=100` +
+            `&populate[Category][fields][0]=slug` +
+            `&populate[imageThumb][fields][0]=url` +
+            `&populate[imageFull][fields][0]=url`
         ).then((r) => r.json());
 
         const fetched: PhotographyBlock[] = Array.isArray(res.data)
