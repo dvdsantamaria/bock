@@ -194,32 +194,53 @@ export default function PhotographyPage({ blocks, active }: Props) {
 
             {/* ───── galería relacionada debajo (tipo lista) ───── */}
             {related.length > 0 && (
-              <section className="col-span-8 md:col-span-12 pt-10 space-y-4 px-4 md:px-0">
-                <h3 className="uppercase tracking-wider text-sm mb-2 text-white">
-                  Gallery
-                </h3>
-                <ul className="flex flex-col gap-4">
-                  {related.map((r) => (
-                    <li key={r.slug}>
-                      <Link
-                        href={`/photography/${r.category}/${r.slug}`}
-                        className="group flex items-center gap-4"
-                      >
-                        {r.imageThumb && (
-                          <img
-                            src={r.imageThumb}
-                            alt={r.title}
-                            className="w-32 aspect-video object-cover rounded-md border border-gray-700 group-hover:border-[var(--accent)] transition"
-                          />
-                        )}
-                        <span className="text-sm text-white group-hover:text-[var(--accent)]">
-                          {r.title}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <>
+                {/* Mobile: desplegable */}
+                <div className="col-span-8 md:hidden px-4 pt-4">
+                  <details className="border border-gray-300 rounded-md bg-white">
+                    <summary className="cursor-pointer px-4 py-2 text-sm font-semibold hover:text-[var(--accent)]">
+                      Gallery
+                    </summary>
+                    <ul className="px-4 py-2 space-y-1">
+                      {related.map((r) => (
+                        <li key={r.slug}>
+                          <Link
+                            href={`/photography/${r.category}/${r.slug}`}
+                            className="block text-sm hover:text-[var(--accent)]"
+                          >
+                            {r.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                </div>
+
+                {/* Desktop: lateral fijo */}
+                <aside className="hidden md:block col-start-10 col-span-2 pt-[42px]">
+                  <h3 className="uppercase tracking-wider text-sm mb-4">
+                    Gallery
+                  </h3>
+                  <ul className="space-y-4">
+                    {related.map((r) => (
+                      <li key={r.slug}>
+                        <Link href={`/photography/${r.category}/${r.slug}`}>
+                          {r.imageThumb && (
+                            <img
+                              src={r.imageThumb}
+                              alt={r.title}
+                              className="w-full aspect-video object-cover rounded-md border border-gray-700 hover:border-[var(--accent)] transition"
+                            />
+                          )}
+                          <span className="mt-1 block text-xs leading-snug hover:text-[var(--accent)]">
+                            {r.title}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </aside>
+              </>
             )}
 
             <Footer />
