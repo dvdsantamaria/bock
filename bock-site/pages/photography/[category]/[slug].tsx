@@ -9,8 +9,9 @@ interface Props {
   blocks: PhotographyBlock[];
 }
 
-/* -------- getStaticPaths (ISR) -------- */
+/* -------- getStaticPaths -------- */
 export const getStaticPaths: GetStaticPaths = async () => {
+  console.log("Fetching paths for all photographies...");
   const r = await fetch(
     `${API}/api/photographies?populate[Category][fields][0]=slug`
   ).then((x) => x.json());
@@ -25,19 +26,24 @@ export const getStaticPaths: GetStaticPaths = async () => {
         },
       })) || [];
 
+  console.log("Generated paths:", paths);
+
   return { paths, fallback: "blocking" };
 };
 
-/* -------- getStaticProps (ISR) -------- */
+/* -------- getStaticProps -------- */
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const { slug } = params as { slug: string };
+  console.log("Fetching active photo for slug:", slug);
 
-  // 1️⃣ Fetch photo by slug
   const r1 = await fetch(
     `${API}/api/photographies?filters[slug][$eq]=${slug}&populate=*`
   ).then((r) => r.json());
 
+  console.log("Fetched r1 data:", JSON.stringify(r1, null, 2));
+
   if (!r1?.data?.length) {
+    console.warn("No photo found for slug:", slug);
     return { notFound: true };
   }
 
@@ -57,7 +63,8 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       : undefined,
   };
 
-  // 2️⃣ Fetch all photos for sidebar
+  console.log("Active photo parsed:", active);
+
   const r2 = await fetch(
     `${API}/api/photographies` +
       `?pagination[pageSize]=100` +
@@ -65,6 +72,8 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       `&populate[imageThumb][fields][0]=url` +
       `&populate[imageFull][fields][0]=url`
   ).then((x) => x.json());
+
+  console.log("Fetched sidebar photos r2:", r2?.data?.length);
 
   const blocks: PhotographyBlock[] =
     r2?.data
@@ -84,6 +93,8 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
           : undefined,
       })) || [];
 
+  console.log("Parsed sidebar blocks:", blocks.length);
+
   return {
     props: { active, blocks },
     revalidate: 300,
@@ -92,6 +103,10 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
 
 /* -------- page -------- */
 export default function PhotographySlug({ active, blocks }: Props) {
-  if (!active) return <div className="p-10">Photo not found</div>;
+  if (!active) {
+    console.warn("Active is null on render.");
+    return <div className="p-10">Photo not found</div>;
+  }
+
   return <PhotographyPage blocks={blocks} active={active} />;
 }
