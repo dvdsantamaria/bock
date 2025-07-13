@@ -1,9 +1,8 @@
-export interface PhotoItem {
-  id: number;
-  title: string;
-  subtitle?: string;
-  body: any;
+export interface PhotographyBlock {
   slug: string;
+  title: string;
+  body: string | { type: string; children: { text: string }[] }[];
   imageThumb?: string;
   imageFull?: string;
+  subtitle?: string;
 }
