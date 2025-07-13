@@ -2,12 +2,41 @@ import WritingPage from "@/components/WritingPage";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
+interface Article {
+  id: number;
+  title: string;
+  subtitle?: string;
+  body: any;
+  slug: string;
+  category: string;
+}
+
+interface Intro extends Article {
+  id: "intro";
+  category: "intro";
+}
+
+interface LinkItem {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  active: Article | Intro;
+  related: LinkItem[];
+  categories: string[];
+  articles: Article[];
+}
+
+interface Params {
+  category: string;
+}
+
 export async function getStaticPaths() {
-  // Trae todas las categorías únicas desde Strapi
   const res = await fetch(`${API}/api/writings?populate=Category`);
   const data = await res.json();
 
-  const categories = Array.from(
+  const categories: string[] = Array.from(
     new Set(data.data.map((a: any) => a.Category?.slug || "uncategorised"))
   );
 
@@ -15,10 +44,10 @@ export async function getStaticPaths() {
     params: { category },
   }));
 
-  return { paths, fallback: false }; // solo pre-renderiza lo que existe
+  return { paths, fallback: false };
 }
 
-export async function getStaticProps({ params }: any) {
+export async function getStaticProps({ params }: { params: Params }) {
   const category = params.category;
 
   // Intro
@@ -26,7 +55,7 @@ export async function getStaticProps({ params }: any) {
     res.json()
   );
   const introData = introRaw.data;
-  const intro = {
+  const intro: Intro = {
     id: "intro",
     title: introData.name || introData.title,
     subtitle: introData.subtitle || null,
@@ -40,7 +69,7 @@ export async function getStaticProps({ params }: any) {
     `${API}/api/writings?populate=*&pagination[pageSize]=100`
   ).then((res) => res.json());
 
-  const articles = artRaw.data.map((it: any) => ({
+  const articles: Article[] = artRaw.data.map((it: any) => ({
     id: it.id,
     title: it.title,
     subtitle: it.subtitle,
@@ -51,14 +80,16 @@ export async function getStaticProps({ params }: any) {
 
   const firstInCat = articles.find((a) => a.category === category) ?? intro;
 
-  const related = articles
+  const related: LinkItem[] = articles
     .filter((a) => a.category === category && a.slug !== firstInCat.slug)
     .map((a) => ({
       label: a.title,
       href: `/writing/${category}/${a.slug}`,
     }));
 
-  const categories = Array.from(new Set(articles.map((a) => a.category)));
+  const categories: string[] = Array.from(
+    new Set(articles.map((a) => a.category))
+  );
 
   return {
     props: {
@@ -67,7 +98,7 @@ export async function getStaticProps({ params }: any) {
       categories,
       articles,
     },
-    revalidate: 60, // vuelve a generar si cambia algo
+    revalidate: 60,
   };
 }
 
@@ -76,7 +107,7 @@ export default function WritingCategoryPage({
   related,
   categories,
   articles,
-}: any) {
+}: Props) {
   return (
     <WritingPage
       active={active}

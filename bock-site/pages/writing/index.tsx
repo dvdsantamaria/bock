@@ -2,6 +2,32 @@ import WritingPage from "@/components/WritingPage";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
+interface Article {
+  id: number;
+  title: string;
+  subtitle?: string;
+  body: any;
+  slug: string;
+  category: string;
+}
+
+interface Intro extends Article {
+  id: "intro";
+  category: "intro";
+}
+
+interface LinkItem {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  intro: Intro;
+  articles: Article[];
+  related: LinkItem[];
+  categories: string[];
+}
+
 export async function getStaticProps() {
   // Fetch intro
   const introRaw = await fetch(`${API}/api/writing-intro`).then((res) =>
@@ -9,7 +35,7 @@ export async function getStaticProps() {
   );
 
   const introData = introRaw.data;
-  const intro = {
+  const intro: Intro = {
     id: "intro",
     title: introData.name || introData.title,
     subtitle: introData.subtitle || null,
@@ -23,7 +49,7 @@ export async function getStaticProps() {
     `${API}/api/writings?populate=*&pagination[pageSize]=100`
   ).then((res) => res.json());
 
-  const articles = artRaw.data.map((it: any) => ({
+  const articles: Article[] = artRaw.data.map((it: any) => ({
     id: it.id,
     title: it.title,
     subtitle: it.subtitle,
@@ -32,12 +58,14 @@ export async function getStaticProps() {
     category: it.Category?.slug || "uncategorised",
   }));
 
-  const related = articles.map((a: any) => ({
+  const related: LinkItem[] = articles.map((a) => ({
     label: a.title,
     href: `/writing/${a.category}/${a.slug}`,
   }));
 
-  const categories = Array.from(new Set(articles.map((a: any) => a.category)));
+  const categories: string[] = Array.from(
+    new Set(articles.map((a) => a.category))
+  );
 
   return {
     props: {
@@ -55,7 +83,7 @@ export default function WritingIndex({
   articles,
   related,
   categories,
-}: any) {
+}: Props) {
   return (
     <WritingPage
       active={intro}

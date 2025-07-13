@@ -2,6 +2,37 @@ import WritingPage from "@/components/WritingPage";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
+interface Article {
+  id: number;
+  title: string;
+  subtitle?: string;
+  body: any;
+  slug: string;
+  category: string;
+}
+
+interface Intro extends Article {
+  id: "intro";
+  category: "intro";
+}
+
+interface LinkItem {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  active: Article | Intro;
+  related: LinkItem[];
+  categories: string[];
+  articles: Article[];
+}
+
+interface Params {
+  category: string;
+  slug: string;
+}
+
 export async function getStaticPaths() {
   const res = await fetch(`${API}/api/writings?populate=Category`);
   const data = await res.json();
@@ -16,7 +47,7 @@ export async function getStaticPaths() {
   return { paths, fallback: false };
 }
 
-export async function getStaticProps({ params }: any) {
+export async function getStaticProps({ params }: { params: Params }) {
   const { category, slug } = params;
 
   // Intro
@@ -24,7 +55,7 @@ export async function getStaticProps({ params }: any) {
     res.json()
   );
   const introData = introRaw.data;
-  const intro = {
+  const intro: Intro = {
     id: "intro",
     title: introData.name || introData.title,
     subtitle: introData.subtitle || null,
@@ -38,7 +69,7 @@ export async function getStaticProps({ params }: any) {
     `${API}/api/writings?populate=*&pagination[pageSize]=100`
   ).then((res) => res.json());
 
-  const articles = artRaw.data.map((it: any) => ({
+  const articles: Article[] = artRaw.data.map((it: any) => ({
     id: it.id,
     title: it.title,
     subtitle: it.subtitle,
@@ -50,14 +81,16 @@ export async function getStaticProps({ params }: any) {
   const article =
     articles.find((a) => a.slug === slug && a.category === category) ?? intro;
 
-  const related = articles
+  const related: LinkItem[] = articles
     .filter((a) => a.category === category && a.slug !== slug)
     .map((a) => ({
       label: a.title,
       href: `/writing/${a.category}/${a.slug}`,
     }));
 
-  const categories = Array.from(new Set(articles.map((a) => a.category)));
+  const categories: string[] = Array.from(
+    new Set(articles.map((a) => a.category))
+  );
 
   return {
     props: {
@@ -75,7 +108,7 @@ export default function WritingDetailPage({
   related,
   categories,
   articles,
-}: any) {
+}: Props) {
   return (
     <WritingPage
       active={active}
