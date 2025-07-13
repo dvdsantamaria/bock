@@ -192,13 +192,13 @@ export default function PhotographyPage({ blocks, active }: Props) {
                 : null}
             </article>
 
-            {/* ───── sidebar desktop ───── */}
+            {/* ───── galería relacionada debajo ───── */}
             {related.length > 0 && (
-              <aside className="hidden md:block col-start-10 col-span-2 pt-[42px]">
-                <h3 className="uppercase tracking-wider text-sm mb-4">
+              <section className="col-span-8 md:col-span-12 pt-10">
+                <h3 className="uppercase tracking-wider text-sm mb-4 px-4 md:px-0">
                   Gallery
                 </h3>
-                <ul className="space-y-4">
+                <ul className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
                   {related.map((r) => (
                     <li key={r.slug}>
                       <Link
@@ -212,14 +212,14 @@ export default function PhotographyPage({ blocks, active }: Props) {
                             className="w-full aspect-video object-cover rounded-md border border-gray-700 group-hover:border-[var(--accent)] transition"
                           />
                         )}
-                        <span className="mt-1 block text-xs leading-snug group-hover:text-[var(--accent)]">
+                        <span className="mt-1 block text-xs leading-snug text-white group-hover:text-[var(--accent)]">
                           {r.title}
                         </span>
                       </Link>
                     </li>
                   ))}
                 </ul>
-              </aside>
+              </section>
             )}
 
             <Footer />
