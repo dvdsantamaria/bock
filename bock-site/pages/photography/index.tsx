@@ -8,31 +8,28 @@ interface Props {
 }
 
 export async function getStaticProps() {
-  try {
-    const res = await fetch(`${API}/api/photos?populate=*`);
-    const raw = await res.json();
+  const res = await fetch(`${API}/api/photos?populate=*`);
+  const raw = await res.json();
 
-    if (!raw?.data || !Array.isArray(raw.data)) {
-      throw new Error("Invalid or empty data from /api/photos");
-    }
-
-    const blocks: PhotographyBlock[] = raw.data.map((it: any) => ({
-      id: it.id,
-      title: it.attributes?.title || it.title,
-      subtitle: it.attributes?.subtitle || it.subtitle,
-      body: it.attributes?.body || it.body || it.content,
-      slug: it.attributes?.slug || it.slug,
-      imageThumb: it.attributes?.imageThumb?.url
-        ? `${API}${it.attributes.imageThumb.url}`
+  const blocks: PhotographyBlock[] =
+    raw.data?.map((it: any) => ({
+      slug: it.attributes.slug,
+      title: it.attributes.title,
+      subtitle: it.attributes.subtitle,
+      body: it.attributes.body || it.attributes.content,
+      imageThumb: it.attributes.imageThumb?.data?.attributes?.url
+        ? `${API}${it.attributes.imageThumb.data.attributes.url}`
         : undefined,
-      imageFull: it.attributes?.imageFull?.url
-        ? `${API}${it.attributes.imageFull.url}`
+      imageFull: it.attributes.imageFull?.data?.attributes?.url
+        ? `${API}${it.attributes.imageFull.data.attributes.url}`
         : undefined,
-    }));
+    })) ?? [];
 
-    return { props: { blocks }, revalidate: 300 };
-  } catch (err) {
-    console.error("Error in getStaticProps /photography:", err);
-    return { notFound: true };
-  }
+  return { props: { blocks }, revalidate: 300 };
+}
+
+// ✅ React component must be exported as default
+export default function PhotographyIndex({ blocks }: Props) {
+  const active = blocks[0];
+  return <PhotographyPage blocks={blocks} active={active} />;
 }
