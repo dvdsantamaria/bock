@@ -1,11 +1,13 @@
+/* types/photography.ts */
+
+/** Fotografía o bloque de galería */
 export interface PhotographyBlock {
-  id: number; // ✅ obligatorio — usado como key
-  title: string; // ✅ obligatorio — mostrado como <h1>
-  subtitle?: string; // ✅ opcional — mostrado en <p> si existe
+  id: number;
+  title: string;
+  subtitle?: string;
   body: string | { type: string; children: { text: string }[] }[];
-  // ✅ correcto — contemplás contenido raw o rich text
-  slug: string; // ✅ obligatorio — usado en la URL
-  imageThumb?: string; // ✅ opcional — mostrado en thumbnails
-  imageFull?: string; // ✅ opcional — mostrado como imagen principal
-  category: string; // ✅ obligatorio — slug de categoría, usado para navegación
+  slug: string; // ej: blur/seaspray-fog
+  category: string; // slug de la categoría (relación Category)
+  imageThumb?: string; // miniatura
+  imageFull?: string; // hero / foto grande
 }

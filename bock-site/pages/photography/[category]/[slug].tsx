@@ -1,114 +1,93 @@
-import { useRouter } from "next/router";
+/* pages/photography/[category]/[slug].tsx
+   – Construye todas las rutas en build (SSG) y revalida cada 5 min. */
+
 import type { GetStaticPaths, GetStaticProps } from "next";
+import PhotographyPage from "@/components/PhotographyPage";
 import type { PhotographyBlock } from "@/types/photography";
-import { useEffect, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-interface Props {
-  block: PhotographyBlock | null;
-  blocks: PhotographyBlock[];
-}
-
-function renderBody(
-  body: string | { type: string; children: { text: string }[] }[]
-) {
-  if (typeof body === "string") {
-    return <p>{body}</p>;
-  }
-
-  if (Array.isArray(body)) {
-    return body.map((block, idx) => (
-      <p key={idx}>
-        {block.children?.map((c, i) => (
-          <span key={i}>{c.text}</span>
-        ))}
-      </p>
-    ));
-  }
-
-  return null;
-}
-
-export default function PhotographySlugPage({ block, blocks }: Props) {
-  const router = useRouter();
-
-  if (router.isFallback) {
-    return <div>Loading…</div>;
-  }
-
-  if (!block) {
-    return <div>Photo not found</div>;
-  }
-
-  return (
-    <div style={{ padding: "2rem" }}>
-      <h1>{block.title}</h1>
-      <h2>{block.subtitle}</h2>
-      <div>{renderBody(block.body)}</div>
-      {block.imageFull && (
-        <img
-          src={block.imageFull}
-          alt={block.title}
-          style={{ maxWidth: "100%" }}
-        />
-      )}
-    </div>
-  );
-}
-
+/* ---------- SSG: rutas ---------- */
 export const getStaticPaths: GetStaticPaths = async () => {
-  const res = await fetch(`${API}/api/photos?populate=*`);
-  const data = await res.json();
+  /* Pedimos SOLO los slugs + categoría para todas las fotos */
+  const res = await fetch(
+    `${API}/api/photographies?populate=Category&pagination[pageSize]=1000&fields=slug`
+  );
+  const json = await res.json();
 
   const paths =
-    data?.data?.map((it: any) => {
-      const slug = it.attributes?.slug ?? "";
-      const [category, subslug] = slug.split("/");
-      return {
-        params: { category, slug: subslug },
-      };
-    }) || [];
+    Array.isArray(json.data) && json.data.length
+      ? json.data.map((it: any) => ({
+          params: {
+            category:
+              it.attributes.Category?.data?.attributes?.slug ?? "uncategorised",
+            slug: it.attributes.slug,
+          },
+        }))
+      : [];
 
-  return {
-    paths,
-    fallback: true,
-  };
+  return { paths, fallback: "blocking" };
 };
 
+/* ---------- SSG: datos de la página ---------- */
 export const getStaticProps: GetStaticProps = async ({ params }) => {
-  const res = await fetch(
-    `${API}/api/photos?populate=Category,imageThumb,imageFull`
+  const { category, slug } = params as {
+    category: string;
+    slug: string;
+  };
+
+  /* Traemos TODAS las fotos (para sidebar/relacionados)           */
+  /* Podrías paginar aquí si la colección crece mucho.             */
+  const allRes = await fetch(
+    `${API}/api/photographies?populate=Category,imageThumb,imageFull&pagination[pageSize]=1000`
   );
-  const data = await res.json();
+  const allJson = await allRes.json();
 
-  const all: PhotographyBlock[] =
-    data?.data?.map((it: any) => {
-      const a = it.attributes || {};
-      return {
-        id: it.id,
-        title: a.title,
-        subtitle: a.subtitle,
-        slug: a.slug,
-        body: a.body || a.content || "",
-        category: a.Category?.data?.attributes?.slug || "uncategorised",
-        imageThumb: a.imageThumb?.data?.attributes?.url
-          ? `${API}${a.imageThumb.data.attributes.url}`
-          : undefined,
-        imageFull: a.imageFull?.data?.attributes?.url
-          ? `${API}${a.imageFull.data.attributes.url}`
-          : undefined,
-      };
-    }) || [];
+  const all: PhotographyBlock[] = Array.isArray(allJson.data)
+    ? allJson.data.map((it: any) => {
+        const a = it.attributes;
+        return {
+          id: it.id,
+          title: a.title,
+          subtitle: a.subtitle ?? "",
+          body: a.body ?? a.content ?? "",
+          slug: a.slug,
+          category: a.Category?.data?.attributes?.slug ?? "uncategorised",
+          imageThumb: a.imageThumb?.data?.attributes?.url
+            ? `${API}${a.imageThumb.data.attributes.url}`
+            : undefined,
+          imageFull: a.imageFull?.data?.attributes?.url
+            ? `${API}${a.imageFull.data.attributes.url}`
+            : undefined,
+        };
+      })
+    : [];
 
-  const slug = `${params?.category}/${params?.slug}`;
-  const block = all.find((p) => p.slug === slug) || null;
+  /* Buscamos el bloque que coincide con slug & category */
+  const block =
+    all.find((p) => p.slug === slug && p.category === category) ?? null;
+
+  if (!block) {
+    /* Si Strapi no lo devuelve => 404 en build y runtime */
+    return { notFound: true, revalidate: 60 };
+  }
 
   return {
     props: {
       block,
       blocks: all,
     },
-    revalidate: 300,
+    revalidate: 300, // 5 min – se vuelve a generar en segundo plano
   };
 };
+
+/* ---------- Componente de la página ---------- */
+interface Props {
+  block: PhotographyBlock;
+  blocks: PhotographyBlock[];
+}
+
+export default function PhotographySlugPage({ block, blocks }: Props) {
+  /* Pasamos la foto actual como `active` y toda la lista para sidebar */
+  return <PhotographyPage active={block} blocks={blocks} />;
+}

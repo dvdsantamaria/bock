@@ -1,11 +1,12 @@
+/* components/PhotographyPage.tsx */
 import React, { useEffect, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import MainLayout from "@/components/MainLayout";
-import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 
+import MainLayout from "@/components/MainLayout";
+import Footer from "@/components/Footer";
 import type { PhotographyBlock } from "@/types/photography";
 
 /* ---------- tema ---------- */
@@ -19,12 +20,12 @@ const theme = {
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
-
-/* ---------- helpers ---------- */
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 interface Props {
+  /** Vienen prerenderizadas con `getStaticProps` */
   blocks?: PhotographyBlock[];
+  /** Para detalle pre-seleccionado (getStaticProps / rutas dinámicas) */
   active?: PhotographyBlock;
 }
 
@@ -34,27 +35,29 @@ export default function PhotographyPage({ blocks, active }: Props) {
     slug?: string;
   };
 
+  /* ---------- estado ---------- */
   const [items, setItems] = useState<PhotographyBlock[]>(blocks ?? []);
-  const [loading, setLoading] = useState(!blocks);
+  const [loading, setWait] = useState(!blocks);
 
+  /* ---------- CSR fallback ---------- */
   useEffect(() => {
-    if (blocks) return;
+    if (blocks) return; // ya vino por SSG
 
     (async () => {
       try {
-        const res = await fetch(
-          `${API}/api/photos?populate=Category,imageThumb,imageFull&pagination[pageSize]=100`
+        const json = await fetch(
+          `${API}/api/photographies?populate=Category,imageThumb,imageFull&pagination[pageSize]=100`
         ).then((r) => r.json());
 
         setItems(
-          res.data.map(
+          json.data.map(
             (it: any): PhotographyBlock => ({
               id: it.id,
               title: it.title,
               subtitle: it.subtitle,
-              body: it.body || it.content,
+              body: it.body || it.content || "",
               slug: it.slug,
-              category: it.Category?.slug ?? "uncategorised",
+              category: it.Category?.slug || "uncategorised",
               imageThumb: it.imageThumb?.url
                 ? `${API}${it.imageThumb.url}`
                 : undefined,
@@ -65,13 +68,14 @@ export default function PhotographyPage({ blocks, active }: Props) {
           )
         );
       } catch (err) {
-        console.error("Error fetching photographs:", err);
+        console.error("⚠️ fetch photographs:", err);
       } finally {
-        setLoading(false);
+        setWait(false);
       }
     })();
   }, [blocks]);
 
+  /* ---------- tema CSS-vars ---------- */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -81,18 +85,19 @@ export default function PhotographyPage({ blocks, active }: Props) {
       Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
+  /* ---------- early-states ---------- */
   if (loading) return <div className="p-10">Loading…</div>;
   if (!items.length) return <div className="p-10">No photos found.</div>;
 
-  let current: PhotographyBlock = active ?? items[0];
+  /* ---------- current / related ---------- */
+  let current = active ?? items[0];
   if (slug && category) {
-    current =
-      items.find((p) => p.slug === slug && p.category === category) ?? current;
+    current = items.find((p) => p.slug === `${category}/${slug}`) ?? current;
   }
-
   const related = items.filter((p) => p.slug !== current.slug);
   const categories = Array.from(new Set(items.map((p) => p.category)));
 
+  /* ---------- UI ---------- */
   return (
     <>
       <Head>
@@ -113,6 +118,7 @@ export default function PhotographyPage({ blocks, active }: Props) {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
+            {/* ---------- móvil ---------- */}
             {related.length > 0 && (
               <div className="col-span-8 md:hidden px-4 pt-4">
                 <details className="border border-gray-300 rounded-md bg-white">
@@ -135,14 +141,8 @@ export default function PhotographyPage({ blocks, active }: Props) {
               </div>
             )}
 
-            <article
-              className="
-                col-start-1 col-span-8
-                md:col-start-1 md:col-span-8 md:py-10
-                lg:col-start-2 lg:col-span-8
-                text-white space-y-6
-              "
-            >
+            {/* ---------- principal ---------- */}
+            <article className="col-start-1 col-span-8 md:py-10 lg:col-start-2 lg:col-span-8 text-white space-y-6">
               {current.imageFull && (
                 <img
                   src={current.imageFull}
@@ -157,7 +157,7 @@ export default function PhotographyPage({ blocks, active }: Props) {
               )}
 
               {Array.isArray(current.body)
-                ? current.body.map((block: any, i: number) =>
+                ? current.body.map((block: any, i) =>
                     block.type === "paragraph" ? (
                       <p key={i}>
                         {block.children?.map((c: any, j: number) => (
@@ -166,13 +166,10 @@ export default function PhotographyPage({ blocks, active }: Props) {
                       </p>
                     ) : null
                   )
-                : typeof current.body === "string"
-                ? current.body
-                    .split("\n\n")
-                    .map((p: string, i: number) => <p key={i}>{p}</p>)
-                : null}
+                : current.body.split("\n\n").map((p, i) => <p key={i}>{p}</p>)}
             </article>
 
+            {/* ---------- desktop sidebar ---------- */}
             {related.length > 0 && (
               <aside className="hidden md:block col-start-10 col-span-2 pt-[42px]">
                 <h3 className="uppercase tracking-wider text-sm mb-4">
@@ -186,7 +183,8 @@ export default function PhotographyPage({ blocks, active }: Props) {
                           <img
                             src={r.imageThumb}
                             alt={r.title}
-                            className="w-full aspect-video object-cover rounded-md border border-gray-700 hover:border-[var(--accent)] transition"
+                            className="w-full aspect-video object-cover rounded-md border border-gray-700
+                                          hover:border-[var(--accent)] transition"
                           />
                         )}
                         <span className="mt-1 block text-xs leading-snug hover:text-[var(--accent)]">
