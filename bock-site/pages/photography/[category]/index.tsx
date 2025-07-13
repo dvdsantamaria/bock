@@ -4,7 +4,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/router";
-import type { PhotographyBlock } from "@/types/photography"; // ← solo este
+import type { PhotographyBlock } from "@/types/photography";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
@@ -23,23 +23,26 @@ export default function PhotographyCategoryRedirect() {
         const json = await res.json();
 
         const photos: PhotographyBlock[] = Array.isArray(json.data)
-          ? json.data.map((it: any) => {
-              const a = it.attributes;
-              return {
-                id: it.id,
-                title: a.title,
-                subtitle: a.subtitle ?? "",
-                body: a.body ?? a.content ?? "",
-                slug: a.slug,
-                category: a.Category?.data?.attributes?.slug ?? "uncategorised",
-                imageThumb: a.imageThumb?.data?.attributes?.url
-                  ? `${API}${a.imageThumb.data.attributes.url}`
-                  : undefined,
-                imageFull: a.imageFull?.data?.attributes?.url
-                  ? `${API}${a.imageFull.data.attributes.url}`
-                  : undefined,
-              };
-            })
+          ? json.data
+              .filter((it: any) => it.attributes?.Category?.data)
+              .map((it: any) => {
+                const a = it.attributes;
+                return {
+                  id: it.id,
+                  title: a.title,
+                  subtitle: a.subtitle ?? "",
+                  body: a.body ?? a.content ?? "",
+                  slug: a.slug,
+                  category:
+                    a.Category.data?.attributes?.slug ?? "uncategorised",
+                  imageThumb: a.imageThumb?.data?.attributes?.url
+                    ? `${API}${a.imageThumb.data.attributes.url}`
+                    : undefined,
+                  imageFull: a.imageFull?.data?.attributes?.url
+                    ? `${API}${a.imageFull.data.attributes.url}`
+                    : undefined,
+                };
+              })
           : [];
 
         if (photos.length) {
@@ -55,5 +58,5 @@ export default function PhotographyCategoryRedirect() {
     })();
   }, [category, router]);
 
-  return null; // nada visible
+  return null;
 }

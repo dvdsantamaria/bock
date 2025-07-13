@@ -14,18 +14,25 @@ export async function getStaticProps() {
     ).then((x) => x.json());
 
     const blocks: PhotographyBlock[] =
-      r?.data?.map((it: any) => ({
-        id: it.id,
-        title: it.title,
-        subtitle: it.subtitle ?? "",
-        body: it.body ?? it.content ?? "",
-        slug: it.slug,
-        category: it.Category?.slug ?? "uncategorised",
-        imageThumb: it.imageThumb?.url
-          ? `${API}${it.imageThumb.url}`
-          : undefined,
-        imageFull: it.imageFull?.url ? `${API}${it.imageFull.url}` : undefined,
-      })) || [];
+      r?.data
+        ?.filter((it: any) => it.attributes?.Category?.data)
+        .map((it: any) => {
+          const a = it.attributes;
+          return {
+            id: it.id,
+            title: a.title,
+            subtitle: a.subtitle ?? "",
+            body: a.body ?? a.content ?? "",
+            slug: a.slug,
+            category: a.Category.data.attributes.slug ?? "uncategorised",
+            imageThumb: a.imageThumb?.data?.attributes?.url
+              ? `${API}${a.imageThumb.data.attributes.url}`
+              : undefined,
+            imageFull: a.imageFull?.data?.attributes?.url
+              ? `${API}${a.imageFull.data.attributes.url}`
+              : undefined,
+          };
+        }) || [];
 
     return { props: { blocks }, revalidate: 300 };
   } catch (e) {
