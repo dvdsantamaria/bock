@@ -3,25 +3,6 @@ import type { Intro, Article, LinkItem } from "@/types/writing";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-interface Article {
-  id: number;
-  title: string;
-  subtitle?: string;
-  body: any;
-  slug: string;
-  category: string;
-}
-
-interface Intro extends Article {
-  id: "intro";
-  category: "intro";
-}
-
-interface LinkItem {
-  label: string;
-  href: string;
-}
-
 interface Props {
   intro: Intro;
   articles: Article[];
@@ -30,11 +11,9 @@ interface Props {
 }
 
 export async function getStaticProps() {
-  // Fetch intro
-  const introRaw = await fetch(`${API}/api/writing-intro`).then((res) =>
-    res.json()
+  const introRaw = await fetch(`${API}/api/writing-intro`).then((r) =>
+    r.json()
   );
-
   const introData = introRaw.data;
   const intro: Intro = {
     id: "intro",
@@ -45,10 +24,9 @@ export async function getStaticProps() {
     category: "intro",
   };
 
-  // Fetch articles
   const artRaw = await fetch(
     `${API}/api/writings?populate=*&pagination[pageSize]=100`
-  ).then((res) => res.json());
+  ).then((r) => r.json());
 
   const articles: Article[] = artRaw.data.map((it: any) => ({
     id: it.id,
@@ -69,13 +47,8 @@ export async function getStaticProps() {
   );
 
   return {
-    props: {
-      intro,
-      articles,
-      related,
-      categories,
-    },
-    revalidate: 60, // cada 60 segundos refresca cache en background
+    props: { intro, articles, related, categories },
+    revalidate: 60,
   };
 }
 
