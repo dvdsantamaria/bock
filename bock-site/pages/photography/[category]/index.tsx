@@ -6,7 +6,6 @@ import { ParsedUrlQuery } from "querystring";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-// Definir la interfaz para los parámetros de ruta
 interface PathParams extends ParsedUrlQuery {
   category: string;
 }
@@ -21,24 +20,24 @@ export const getStaticPaths: GetStaticPaths = async () => {
     const res = await fetch(`${API}/api/photographies?populate=Category`);
     const data = await res.json();
 
-    // Asegurar que categories sea un array de strings
+    // Obtener categorías únicas y filtrar vacías
     const categories: string[] = Array.from(
-      new Set(
+      new Set<string>(
         data.data.map((a: any) => {
           const categoryData = a.attributes?.Category?.data;
           return categoryData ? categoryData.attributes.slug : "uncategorised";
         })
       )
-    );
+    ).filter((cat) => cat && cat.trim() !== "");
 
-    // Crear paths con tipo explícito
+    // Crear paths solo para categorías válidas
     const paths = categories.map((cat) => ({
       params: { category: cat },
     }));
 
     return {
       paths,
-      fallback: "blocking", // Cambiado a blocking para mejor manejo
+      fallback: "blocking",
     };
   } catch (error) {
     console.error("Error in getStaticPaths:", error);
@@ -53,13 +52,11 @@ export const getStaticProps: GetStaticProps<Props, PathParams> = async ({
   params,
 }) => {
   try {
-    // Obtener todas las fotos
     const photosRes = await fetch(
       `${API}/api/photographies?populate=*&pagination[pageSize]=100`
     );
     const photosData = await photosRes.json();
 
-    // Procesar datos
     const photos: PhotoItem[] = photosData.data.map((p: any) => {
       const attributes = p.attributes || {};
       const categoryData = attributes.Category?.data;
@@ -107,18 +104,15 @@ export default function PhotographyCategoryRedirect({
       return;
     }
 
-    // Filtrar fotos por categoría
     const categoryPhotos = photos.filter((p) => p.category === category);
 
     if (categoryPhotos.length > 0) {
-      // Seleccionar una foto aleatoria
       const randomPhoto =
         categoryPhotos[Math.floor(Math.random() * categoryPhotos.length)];
       router.replace(
         `/photography/${randomPhoto.category}/${randomPhoto.slug}`
       );
     } else {
-      // Redirigir a la página principal si no hay fotos
       router.replace("/photography");
     }
   }, [category, photos, router]);
