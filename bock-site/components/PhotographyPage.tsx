@@ -7,7 +7,6 @@ import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
-/* ---------- tipos ---------- */
 export interface PhotoItem {
   id: number | "intro";
   title: string;
@@ -19,18 +18,8 @@ export interface PhotoItem {
   imageFull?: string;
 }
 
-/*  Para que pages/photography/[...].tsx pueda hacer:
-      import type { PhotographyJson } from "@/components/PhotographyPage"
-    (aunque en la versión que usa Strapi ya no cargamos un JSON local),
-    exportamos un tipo “vacío” con la misma forma que antes:             */
-export type PhotographyJson = {
-  intro: PhotoItem;
-  articles: PhotoItem[];
-};
-
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-/* ---------- tema ---------- */
 const theme = {
   background: "#A7A9AC",
   accent: "#CDE59C",
@@ -40,10 +29,8 @@ const theme = {
   sectionColor: "#cccccc",
 };
 
-/* prefija la URL si empieza con “/” */
 const url = (p?: string) => (p && p.startsWith("/") ? `${API}${p}` : p ?? "");
 
-/* ─────────────────────────────────────────────── */
 export default function PhotographyPage() {
   const { query, replace } = useRouter();
   const { category, slug } = query as { category?: string; slug?: string };
@@ -52,7 +39,7 @@ export default function PhotographyPage() {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* carga todas las fotos y usa la primera como “intro” */
+  /* carga todas las fotos y usa la primera como "intro" */
   useEffect(() => {
     (async () => {
       try {
@@ -60,14 +47,21 @@ export default function PhotographyPage() {
           `${API}/api/photographies?populate=*&pagination[pageSize]=200`
         );
         const json = await res.json();
-        const list: PhotoItem[] = (json.data as any[]).map((p) => ({
-          id: p.id,
-          title: p.title,
-          category: p.Category?.slug || "uncategorised",
-          slug: p.slug,
-          imageThumb: url(p.imageThumb?.url),
-          imageFull: url(p.imageFull?.url),
-        }));
+
+        // Acceso a datos según estructura de Strapi v4
+        const list: PhotoItem[] = json.data.map((p: any) => {
+          const attributes = p.attributes || {};
+          return {
+            id: p.id,
+            title: attributes.title || "",
+            category:
+              attributes.category?.data?.attributes?.slug || "uncategorised",
+            slug: attributes.slug || "",
+            imageThumb: url(attributes.imageThumb?.data?.attributes?.url),
+            imageFull: url(attributes.imageFull?.data?.attributes?.url),
+          };
+        });
+
         setPhotos(list);
 
         if (list.length) {
