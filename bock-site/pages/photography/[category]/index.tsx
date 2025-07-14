@@ -1,62 +1,81 @@
-/* pages/photography/[category]/index.tsx
-   — CSR: carga todas las fotos de la categoría y redirige a una aleatoria */
-import { useEffect } from "react";
+import { GetStaticPaths, GetStaticProps } from "next";
 import { useRouter } from "next/router";
-import type { PhotographyBlock } from "@/types/photography";
+import { PhotoItem } from "@/types/photography";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-export default function PhotographyCategoryRedirect() {
+// Función para construir URLs completas
+const url = (p?: string) => (p && p.startsWith("/") ? `${API}${p}` : p ?? "");
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const res = await fetch(`${API}/api/photographies?populate=Category`);
+  const data = await res.json();
+
+  const categories = Array.from(
+    new Set(data.data.map((a: any) => a.Category?.slug || "uncategorised"))
+  );
+
+  return {
+    paths: categories.map((cat) => ({ params: { category: cat } })),
+    fallback: false,
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  // Obtener todas las fotos
+  const photosRes = await fetch(
+    `${API}/api/photographies?populate=*&pagination[pageSize]=100`
+  );
+  const photosData = await photosRes.json();
+
+  // Procesar datos
+  const photos: PhotoItem[] = photosData.data.map((p: any) => ({
+    id: p.id,
+    title: p.title,
+    category: p.Category?.slug || "uncategorised",
+    slug: p.slug,
+    imageThumb: url(p.imageThumb?.url),
+    imageFull: url(p.imageFull?.url),
+  }));
+
+  return {
+    props: {
+      category: params?.category,
+      photos,
+    },
+    revalidate: 60,
+  };
+};
+
+interface Props {
+  category: string;
+  photos: PhotoItem[];
+}
+
+export default function PhotographyCategoryRedirect({
+  category,
+  photos,
+}: Props) {
   const router = useRouter();
-  const { category } = router.query as { category?: string };
 
   useEffect(() => {
-    if (!category) return; // sin hidratar todavía
+    if (!category || !photos) return;
 
-    (async () => {
-      try {
-        // *** NUEVA sintaxis populate ***
-        const res = await fetch(
-          `${API}/api/photographies` +
-            `?filters[Category][slug][$eq]=${category}` +
-            `&pagination[pageSize]=100` +
-            `&populate[Category][fields][0]=slug` +
-            `&populate[imageThumb][fields][0]=url` +
-            `&populate[imageFull][fields][0]=url`
-        ).then((r) => r.json());
+    // Filtrar fotos por categoría
+    const categoryPhotos = photos.filter((p) => p.category === category);
 
-        const photos: PhotographyBlock[] = Array.isArray(res.data)
-          ? res.data.map((it: any) => {
-              const a = it.attributes;
-              return {
-                id: it.id,
-                title: a.title,
-                subtitle: a.subtitle ?? "",
-                body: a.body ?? a.content ?? "",
-                slug: a.slug,
-                category: a.Category?.data?.attributes?.slug ?? "uncategorised",
-                imageThumb: a.imageThumb?.data?.attributes?.url
-                  ? `${API}${a.imageThumb.data.attributes.url}`
-                  : undefined,
-                imageFull: a.imageFull?.data?.attributes?.url
-                  ? `${API}${a.imageFull.data.attributes.url}`
-                  : undefined,
-              };
-            })
-          : [];
+    if (categoryPhotos.length > 0) {
+      // Seleccionar una foto aleatoria
+      const randomPhoto =
+        categoryPhotos[Math.floor(Math.random() * categoryPhotos.length)];
+      router.replace(
+        `/photography/${randomPhoto.category}/${randomPhoto.slug}`
+      );
+    } else {
+      // Redirigir a la página principal si no hay fotos
+      router.replace("/photography");
+    }
+  }, [category, photos, router]);
 
-        if (photos.length) {
-          const rand = photos[Math.floor(Math.random() * photos.length)];
-          router.replace(`/photography/${rand.category}/${rand.slug}`);
-        } else {
-          router.replace("/photography");
-        }
-      } catch (err) {
-        console.error("Failed to fetch photos:", err);
-        router.replace("/photography");
-      }
-    })();
-  }, [category, router]);
-
-  return null;
+  return <div className="p-10">Loading...</div>;
 }

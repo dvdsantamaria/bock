@@ -1,15 +1,16 @@
-export interface PhotographyBlock {
-  id: number;
+export interface PhotoItem {
+  id: number | "intro";
   title: string;
   subtitle?: string;
-  body: string | { type: string; children: { text: string }[] }[];
+  body?: string;
+  category: string;
   slug: string;
-  category: string; // slug de la Category
   imageThumb?: string;
   imageFull?: string;
 }
 
-export interface PhotoItem {
-  category: string;
-  slug: string;
+export interface PhotographyData {
+  intro: PhotoItem;
+  photos: PhotoItem[];
+  categories: string[];
 }
