@@ -1,36 +1,19 @@
 /* components/PhotographyPage.tsx */
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { PhotoItem } from "@/types/photography";
 
-/* ---------- tipos ---------- */
-export interface PhotoItem {
-  id: number | "intro";
-  title: string;
-  subtitle?: string;
-  body?: string;
-  category: string;
-  slug: string;
-  imageThumb?: string;
-  imageFull?: string;
+interface Props {
+  intro: PhotoItem;
+  photos: PhotoItem[];
+  categories: string[];
 }
 
-/*  Para que pages/photography/[...].tsx pueda hacer:
-      import type { PhotographyJson } from "@/components/PhotographyPage"
-    (aunque en la versión que usa Strapi ya no cargamos un JSON local),
-    exportamos un tipo “vacío” con la misma forma que antes:             */
-export type PhotographyJson = {
-  intro: PhotoItem;
-  articles: PhotoItem[];
-};
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
-
-/* ---------- tema ---------- */
 const theme = {
   background: "#A7A9AC",
   accent: "#CDE59C",
@@ -40,60 +23,13 @@ const theme = {
   sectionColor: "#cccccc",
 };
 
-/* prefija la URL si empieza con “/” */
-const url = (p?: string) => (p && p.startsWith("/") ? `${API}${p}` : p ?? "");
-
-/* ─────────────────────────────────────────────── */
-export default function PhotographyPage() {
+export default function PhotographyPage({ intro, photos, categories }: Props) {
   const { query, replace } = useRouter();
   const { category, slug } = query as { category?: string; slug?: string };
 
-  const [intro, setIntro] = useState<PhotoItem | null>(null);
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  /* carga todas las fotos y usa la primera como “intro” */
+  // Redirección al primer slug si falta
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(
-          `${API}/api/photographies?populate=*&pagination[pageSize]=200`
-        );
-        const json = await res.json();
-        const list: PhotoItem[] = (json.data as any[]).map((p) => ({
-          id: p.id,
-          title: p.title,
-          category: p.Category?.slug || "uncategorised",
-          slug: p.slug,
-          imageThumb: url(p.imageThumb?.url),
-          imageFull: url(p.imageFull?.url),
-        }));
-        setPhotos(list);
-
-        if (list.length) {
-          const first = list[0];
-          setIntro({
-            id: "intro",
-            title: first.title,
-            subtitle: first.category,
-            body: "",
-            category: first.category,
-            slug: first.slug,
-            imageThumb: first.imageThumb,
-            imageFull: first.imageFull,
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching photographs:", err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  /* redirección al primer slug si falta */
-  useEffect(() => {
-    if (loading || !photos.length || !category) return;
+    if (!photos.length || !category) return;
 
     const firstInCat = photos.find((p) => p.category === category);
     if (!firstInCat) return;
@@ -106,20 +42,15 @@ export default function PhotographyPage() {
         shallow: true,
       });
     }
-  }, [loading, photos, category, slug, replace]);
+  }, [photos, category, slug, replace]);
 
-  if (loading || !intro) return <div className="p-10">Loading…</div>;
-
-  /* activo: slug válido > intro global */
+  // activo: slug válido > intro global
   const active =
     slug && photos.find((p) => p.slug === slug)
       ? (photos.find((p) => p.slug === slug) as PhotoItem)
       : intro;
 
-  /* sub-menú */
-  const categories = Array.from(new Set(photos.map((p) => p.category))).sort();
-
-  /* thumbs filtrados */
+  // thumbs filtrados
   const thumbs = category
     ? photos.filter((p) => p.category === category)
     : photos;
