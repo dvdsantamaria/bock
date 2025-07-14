@@ -23,24 +23,27 @@ export async function getAboutBlocks(): Promise<AboutBlock[]> {
   const now = Date.now();
   if (_cache && now - _fetchedAt < TTL) return _cache;
 
-  const res = await fetch(
-    `${API}/api/about-blocks?pagination[pageSize]=100&populate=*`
-  );
-  const json = await res.json();
+  try {
+    const res = await fetch(
+      `${API}/api/about-blocks?pagination[pageSize]=100&populate=*`
+    );
+    const json = await res.json();
 
-  _cache =
-    json.data?.map((it: any) => ({
-      id: it.id,
-      title: it.attributes.title,
-      body: it.attributes.body || it.attributes.content || "",
-      slug: it.attributes.slug,
-      // image: it.attributes.image?.data?.attributes?.url
-      //   ? `${API}${it.attributes.image.data.attributes.url}`
-      //   : undefined,
-    })) || [];
+    const blocks: AboutBlock[] =
+      json.data?.map((it: any) => ({
+        id: it.id,
+        title: it.attributes.title,
+        body: it.attributes.body || it.attributes.content || "",
+        slug: it.attributes.slug,
+      })) || [];
 
-  _fetchedAt = now;
-  return _cache;
+    _cache = blocks;
+    _fetchedAt = now;
+    return blocks;
+  } catch (err) {
+    console.error("Error fetching About blocks:", err);
+    return [];
+  }
 }
 
 /** Devuelve un bloque concreto por slug (o null). */
