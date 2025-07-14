@@ -3,19 +3,19 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export interface Intro {
   title: string;
-  subtitle?: string;
+  subtitle: string | null; // Ahora es null si no existe
   body: any;
-  heroImage?: string;
+  heroImage: string | null;
 }
 
 export interface Article {
   id: number;
   title: string;
-  subtitle?: string;
+  subtitle: string | null;
   body: any;
   slug: string;
-  imageThumb?: string;
-  imageFull?: string;
+  imageThumb: string | null;
+  imageFull: string | null;
 }
 
 /* --- helpers --- */
@@ -24,9 +24,9 @@ export async function fetchIntro(): Promise<Intro> {
   const raw = (await res.json()).data;
   return {
     title: raw.title,
-    subtitle: raw.subtitle,
+    subtitle: raw.subtitle ?? null, // SIEMPRE null en vez de undefined
     body: raw.content,
-    heroImage: raw.heroImage?.url ? `${API}${raw.heroImage.url}` : undefined,
+    heroImage: raw.heroImage?.url ? `${API}${raw.heroImage.url}` : null, // null
   };
 }
 
@@ -38,13 +38,11 @@ export async function fetchArticles(): Promise<Article[]> {
   return json.data.map((item: any) => ({
     id: item.id,
     title: item.title,
-    subtitle: item.subtitle,
+    subtitle: item.subtitle ?? null,
     body: item.body || item.content,
     slug: item.slug,
-    imageThumb: item.imageThumb?.url
-      ? `${API}${item.imageThumb.url}`
-      : undefined,
-    imageFull: item.imageFull?.url ? `${API}${item.imageFull.url}` : undefined,
+    imageThumb: item.imageThumb?.url ? `${API}${item.imageThumb.url}` : null,
+    imageFull: item.imageFull?.url ? `${API}${item.imageFull.url}` : null,
   }));
 }
 
