@@ -1,13 +1,22 @@
 import { GetStaticPaths, GetStaticProps } from "next";
 import { useRouter } from "next/router";
+import { useEffect } from "react";
 import { PhotoItem } from "@/types/photography";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-// Función para construir URLs completas
-const url = (p?: string) => (p && p.startsWith("/") ? `${API}${p}` : p ?? "");
+// Definir la interfaz para los parámetros de ruta
+interface PathParams {
+  category: string;
+}
 
-export const getStaticPaths: GetStaticPaths = async () => {
+// Definir la interfaz para los props del componente
+interface Props {
+  category: string;
+  photos: PhotoItem[];
+}
+
+export const getStaticPaths: GetStaticPaths<PathParams> = async () => {
   const res = await fetch(`${API}/api/photographies?populate=Category`);
   const data = await res.json();
 
@@ -21,7 +30,9 @@ export const getStaticPaths: GetStaticPaths = async () => {
   };
 };
 
-export const getStaticProps: GetStaticProps = async ({ params }) => {
+export const getStaticProps: GetStaticProps<Props, PathParams> = async ({
+  params,
+}) => {
   // Obtener todas las fotos
   const photosRes = await fetch(
     `${API}/api/photographies?populate=*&pagination[pageSize]=100`
@@ -34,23 +45,18 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     title: p.title,
     category: p.Category?.slug || "uncategorised",
     slug: p.slug,
-    imageThumb: url(p.imageThumb?.url),
-    imageFull: url(p.imageFull?.url),
+    imageThumb: p.imageThumb?.url ? `${API}${p.imageThumb.url}` : "",
+    imageFull: p.imageFull?.url ? `${API}${p.imageFull.url}` : "",
   }));
 
   return {
     props: {
-      category: params?.category,
+      category: params?.category || "", // Asegurar que siempre sea string
       photos,
     },
     revalidate: 60,
   };
 };
-
-interface Props {
-  category: string;
-  photos: PhotoItem[];
-}
 
 export default function PhotographyCategoryRedirect({
   category,
