@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const blocks = await getAboutBlocks();
+  const blocks = (await getAboutBlocks()) || [];
   return {
     paths: blocks.map((b) => ({ params: { slug: b.slug } })),
     fallback: "blocking",
@@ -17,15 +17,21 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const slug = params?.slug as string;
+
   const [blocks, active] = await Promise.all([
     getAboutBlocks(),
     getAboutBySlug(slug),
   ]);
 
-  if (!active) return { notFound: true, revalidate: 60 };
+  if (!active || !blocks || blocks.length === 0) {
+    return { notFound: true, revalidate: 60 };
+  }
 
   return {
-    props: { blocks, active },
+    props: {
+      blocks,
+      active,
+    },
     revalidate: 300,
   };
 };

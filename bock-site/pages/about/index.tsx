@@ -6,7 +6,15 @@ interface Props {
 }
 
 export async function getStaticProps() {
-  const blocks = await getAboutBlocks();
+  const blocks = (await getAboutBlocks()) || [];
+
+  if (!Array.isArray(blocks) || blocks.length === 0) {
+    console.warn("No about blocks found");
+    return {
+      notFound: true,
+    };
+  }
+
   return {
     props: { blocks },
     revalidate: 300, // ISR – 5 min
@@ -14,6 +22,15 @@ export async function getStaticProps() {
 }
 
 export default function AboutIndex({ blocks }: Props) {
-  // Mantenemos el layout original de AboutPage
-  return <AboutPage blocks={blocks} active={blocks[0]} />;
+  if (!blocks || blocks.length === 0) {
+    return <div className="p-10">No blocks found.</div>;
+  }
+
+  const active = blocks[0];
+
+  if (!active) {
+    return <div className="p-10">Active block is missing.</div>;
+  }
+
+  return <AboutPage blocks={blocks} active={active} />;
 }
