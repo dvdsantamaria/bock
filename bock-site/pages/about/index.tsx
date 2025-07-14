@@ -1,26 +1,19 @@
 import AboutPage from "@/components/AboutPage";
-import type { AboutBlock, LinkItem } from "@/types/about";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+import { getAboutBlocks, AboutBlock } from "@/lib/about";
 
 interface Props {
   blocks: AboutBlock[];
 }
 
 export async function getStaticProps() {
-  const res = await fetch(`${API}/api/abouts?populate=*`);
-  const raw = await res.json();
-
-  const blocks: AboutBlock[] = raw.data.map((it: any) => ({
-    id: it.id,
-    title: it.title,
-    body: it.body || it.content,
-    slug: it.slug,
-  }));
-
-  return { props: { blocks }, revalidate: 300 };
+  const blocks = await getAboutBlocks();
+  return {
+    props: { blocks },
+    revalidate: 300, // ISR – 5 min
+  };
 }
 
 export default function AboutIndex({ blocks }: Props) {
+  // Mantenemos el layout original de AboutPage
   return <AboutPage blocks={blocks} active={blocks[0]} />;
 }

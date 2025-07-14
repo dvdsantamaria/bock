@@ -1,42 +1,36 @@
+import { GetStaticPaths, GetStaticProps } from "next";
 import AboutPage from "@/components/AboutPage";
-import type { AboutBlock } from "@/types/about";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+import { getAboutBlocks, getAboutBySlug, AboutBlock } from "@/lib/about";
 
 interface Props {
   blocks: AboutBlock[];
-  active: AboutBlock;
+  active: AboutBlock | null;
 }
 
-export async function getStaticPaths() {
-  const res = await fetch(`${API}/api/abouts`);
-  const data = await res.json();
+export const getStaticPaths: GetStaticPaths = async () => {
+  const blocks = await getAboutBlocks();
+  return {
+    paths: blocks.map((b) => ({ params: { slug: b.slug } })),
+    fallback: "blocking",
+  };
+};
 
-  const paths = data.data.map((it: any) => ({
-    params: { slug: it.slug },
-  }));
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  const slug = params?.slug as string;
+  const [blocks, active] = await Promise.all([
+    getAboutBlocks(),
+    getAboutBySlug(slug),
+  ]);
 
-  return { paths, fallback: false };
-}
+  if (!active) return { notFound: true, revalidate: 60 };
 
-export async function getStaticProps({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+  return {
+    props: { blocks, active },
+    revalidate: 300,
+  };
+};
 
-  const res = await fetch(`${API}/api/abouts?populate=*`);
-  const raw = await res.json();
-
-  const blocks: AboutBlock[] = raw.data.map((it: any) => ({
-    id: it.id,
-    title: it.title,
-    body: it.body || it.content,
-    slug: it.slug,
-  }));
-
-  const active = blocks.find((b) => b.slug === slug) ?? blocks[0];
-
-  return { props: { blocks, active }, revalidate: 300 };
-}
-
-export default function AboutSlugPage({ blocks, active }: Props) {
+export default function AboutSlug({ blocks, active }: Props) {
+  if (!active) return <div className="p-10">Loading…</div>;
   return <AboutPage blocks={blocks} active={active} />;
 }
