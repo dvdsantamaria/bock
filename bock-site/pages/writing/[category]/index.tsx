@@ -3,57 +3,34 @@ import type { Intro, Article, LinkItem } from "@/types/writing";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-interface Article {
-  id: number;
-  title: string;
-  subtitle?: string;
-  body: any;
-  slug: string;
-  category: string;
-}
-
-interface Intro extends Article {
-  id: "intro";
-  category: "intro";
-}
-
-interface LinkItem {
-  label: string;
-  href: string;
-}
-
 interface Props {
-  active: Article | Intro;
+  active: Intro | Article;
   related: LinkItem[];
   categories: string[];
   articles: Article[];
 }
 
-interface Params {
-  category: string;
-}
-
 export async function getStaticPaths() {
   const res = await fetch(`${API}/api/writings?populate=Category`);
   const data = await res.json();
-
-  const categories: string[] = Array.from(
+  const categories = Array.from(
     new Set(data.data.map((a: any) => a.Category?.slug || "uncategorised"))
   );
-
-  const paths = categories.map((category) => ({
-    params: { category },
-  }));
-
-  return { paths, fallback: false };
+  return {
+    paths: categories.map((cat) => ({ params: { category: cat } })),
+    fallback: false,
+  };
 }
 
-export async function getStaticProps({ params }: { params: Params }) {
-  const category = params.category;
+export async function getStaticProps({
+  params,
+}: {
+  params: { category: string };
+}) {
+  const { category } = params;
 
-  // Intro
-  const introRaw = await fetch(`${API}/api/writing-intro`).then((res) =>
-    res.json()
+  const introRaw = await fetch(`${API}/api/writing-intro`).then((r) =>
+    r.json()
   );
   const introData = introRaw.data;
   const intro: Intro = {
@@ -65,11 +42,9 @@ export async function getStaticProps({ params }: { params: Params }) {
     category: "intro",
   };
 
-  // Articles
   const artRaw = await fetch(
     `${API}/api/writings?populate=*&pagination[pageSize]=100`
-  ).then((res) => res.json());
-
+  ).then((r) => r.json());
   const articles: Article[] = artRaw.data.map((it: any) => ({
     id: it.id,
     title: it.title,
@@ -80,7 +55,6 @@ export async function getStaticProps({ params }: { params: Params }) {
   }));
 
   const firstInCat = articles.find((a) => a.category === category) ?? intro;
-
   const related: LinkItem[] = articles
     .filter((a) => a.category === category && a.slug !== firstInCat.slug)
     .map((a) => ({
@@ -93,12 +67,7 @@ export async function getStaticProps({ params }: { params: Params }) {
   );
 
   return {
-    props: {
-      active: firstInCat,
-      related,
-      categories,
-      articles,
-    },
+    props: { active: firstInCat, related, categories, articles },
     revalidate: 60,
   };
 }
