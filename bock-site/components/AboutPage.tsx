@@ -1,19 +1,21 @@
 import React, { useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { motion, AnimatePresence } from "framer-motion";
 
 import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 
-import type { AboutBlock } from "@/types/about";
+import type { Intro, Article } from "@/lib/about";
 
+/* ------------------ tipos ------------------ */
 interface Props {
-  blocks: AboutBlock[];
-  active: AboutBlock;
+  intro: Intro; // actualmente no se usa, pero queda listo
+  initialArticles: Article[]; // lista completa
 }
 
-/* --------------- tema --------------- */
+/* ------------------ tema ------------------ */
 const theme = {
   background: "#ffffff",
   accent: "#F8C471",
@@ -25,10 +27,22 @@ const theme = {
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
-export default function AboutPage({ blocks, active: activeProp }: Props) {
-  const active = activeProp ?? blocks[0];
+export default function AboutPage({ intro, initialArticles }: Props) {
+  const { query } = useRouter();
+  const slug =
+    typeof query.slug === "string"
+      ? query.slug
+      : Array.isArray(query.slug)
+      ? query.slug[0]
+      : undefined;
 
-  /* --------------- aplicar tema --------------- */
+  /* ------------------ activos ------------------ */
+  const blocks = initialArticles;
+  const active = slug
+    ? blocks.find((b) => b.slug === slug) ?? blocks[0]
+    : blocks[0];
+
+  /* aplicar tema */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -38,7 +52,7 @@ export default function AboutPage({ blocks, active: activeProp }: Props) {
       Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
-  /* --------------- render --------------- */
+  /* ------------------ render ------------------ */
   return (
     <>
       <Head>

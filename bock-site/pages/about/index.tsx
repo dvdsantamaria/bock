@@ -1,30 +1,25 @@
-import AboutPage from "@/components/AboutPage";
-import { getAboutBlocks, AboutBlock } from "@/lib/about";
+// pages/about/index.tsx
+import { GetStaticProps } from "next";
+import dynamic from "next/dynamic";
+import { fetchIntro, fetchArticles, Intro, Article } from "@/lib/about";
+
+const AboutSection = dynamic(() => import("@/components/AboutPage")); // SSR activo
 
 interface Props {
-  blocks: AboutBlock[];
+  intro: Intro;
+  articles: Article[];
 }
 
-export async function getStaticProps() {
-  const blocks = (await getAboutBlocks()) || [];
-
-  if (!Array.isArray(blocks) || blocks.length === 0) {
-    console.warn("No about blocks found");
-    return {
-      notFound: true,
-    };
-  }
-
+export const getStaticProps: GetStaticProps<Props> = async () => {
   return {
-    props: { blocks },
-    revalidate: 300, // ISR – 5 min
+    props: {
+      intro: await fetchIntro(),
+      articles: await fetchArticles(),
+    },
+    revalidate: 300, // 5 min
   };
-}
+};
 
-export default function AboutIndex({ blocks }: Props) {
-  const active = blocks[0] ?? null;
-
-  if (!active) return <div className="p-10">No content found</div>;
-
-  return <AboutPage blocks={blocks} active={active} />;
+export default function AboutIndex({ intro, articles }: Props) {
+  return <AboutSection intro={intro} initialArticles={articles} />;
 }

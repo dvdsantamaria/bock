@@ -1,53 +1,54 @@
-/* lib/about.ts
-   - Centraliza la consulta a Strapi para la sección “About”
-   - Implementa caché in-memory para que las llamadas de build sean rápidas
-*/
+// /lib/about.ts
+const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
-export interface AboutBlock {
+export interface Intro {
+  title: string;
+  subtitle?: string;
+  body: any;
+  heroImage?: string;
+}
+
+export interface Article {
   id: number;
   title: string;
-  body: string | { type: string; children: { text: string }[] }[];
+  subtitle?: string;
+  body: any;
   slug: string;
-  // ⚠️ añade aquí cualquier campo extra que uses en AboutPage (imagen, etc.)
+  imageThumb?: string;
+  imageFull?: string;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
-
-// Caché simple en memoria del proceso
-let _cache: AboutBlock[] | null = null;
-let _fetchedAt = 0;
-const TTL = 1000 * 60 * 5; // 5 min
-
-/** Descarga (o devuelve de caché) todos los bloques About. */
-export async function getAboutBlocks(): Promise<AboutBlock[]> {
-  const now = Date.now();
-  if (_cache && now - _fetchedAt < TTL) return _cache;
-
-  try {
-    const res = await fetch(
-      `${API}/api/about-blocks?pagination[pageSize]=100&populate=*`
-    );
-    const json = await res.json();
-
-    const blocks: AboutBlock[] =
-      json.data?.map((it: any) => ({
-        id: it.id,
-        title: it.attributes.title,
-        body: it.attributes.body || it.attributes.content || "",
-        slug: it.attributes.slug,
-      })) || [];
-
-    _cache = blocks;
-    _fetchedAt = now;
-    return blocks;
-  } catch (err) {
-    console.error("Error fetching About blocks:", err);
-    return [];
-  }
+/* --- helpers --- */
+export async function fetchIntro(): Promise<Intro> {
+  const res = await fetch(`${API}/api/about-intro?populate=*`);
+  const raw = (await res.json()).data;
+  return {
+    title: raw.title,
+    subtitle: raw.subtitle,
+    body: raw.content,
+    heroImage: raw.heroImage?.url ? `${API}${raw.heroImage.url}` : undefined,
+  };
 }
 
-/** Devuelve un bloque concreto por slug (o null). */
-export async function getAboutBySlug(slug: string): Promise<AboutBlock | null> {
-  const all = await getAboutBlocks();
-  return all.find((b) => b.slug === slug) ?? null;
+export async function fetchArticles(): Promise<Article[]> {
+  const res = await fetch(
+    `${API}/api/abouts?populate=*&pagination[pageSize]=100`
+  );
+  const json = await res.json();
+  return json.data.map((item: any) => ({
+    id: item.id,
+    title: item.title,
+    subtitle: item.subtitle,
+    body: item.body || item.content,
+    slug: item.slug,
+    imageThumb: item.imageThumb?.url
+      ? `${API}${item.imageThumb.url}`
+      : undefined,
+    imageFull: item.imageFull?.url ? `${API}${item.imageFull.url}` : undefined,
+  }));
+}
+
+export async function getAllSlugs(): Promise<string[]> {
+  const articles = await fetchArticles();
+  return articles.map((a) => a.slug);
 }

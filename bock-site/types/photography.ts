@@ -1,8 +1,7 @@
 export interface PhotoItem {
-  id: number | "intro";
+  id: number;
   title: string;
   subtitle?: string;
-  body?: string;
   category: string;
   slug: string;
   imageThumb?: string;

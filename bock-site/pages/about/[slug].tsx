@@ -1,42 +1,39 @@
-import { GetStaticPaths, GetStaticProps } from "next";
-import AboutPage from "@/components/AboutPage";
-import { getAboutBlocks, getAboutBySlug, AboutBlock } from "@/lib/about";
+// pages/about/[slug].tsx
+import { GetStaticProps, GetStaticPaths } from "next";
+import dynamic from "next/dynamic";
+import {
+  fetchIntro,
+  fetchArticles,
+  getAllSlugs,
+  Intro,
+  Article,
+} from "@/lib/about";
+
+const AboutSection = dynamic(() => import("@/components/AboutPage"));
 
 interface Props {
-  blocks: AboutBlock[];
-  active: AboutBlock | null;
+  intro: Intro;
+  articles: Article[];
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const blocks = (await getAboutBlocks()) || [];
+  const slugs = await getAllSlugs();
   return {
-    paths: blocks.map((b) => ({ params: { slug: b.slug } })),
+    paths: slugs.map((slug) => ({ params: { slug } })),
     fallback: "blocking",
   };
 };
 
-export const getStaticProps: GetStaticProps = async ({ params }) => {
-  const slug = params?.slug as string;
-
-  const [blocks, active] = await Promise.all([
-    getAboutBlocks(),
-    getAboutBySlug(slug),
-  ]);
-
-  if (!active || !blocks || blocks.length === 0) {
-    return { notFound: true, revalidate: 60 };
-  }
-
+export const getStaticProps: GetStaticProps<Props> = async () => {
   return {
     props: {
-      blocks,
-      active,
+      intro: await fetchIntro(),
+      articles: await fetchArticles(), // AboutPage filtra por router.slug
     },
     revalidate: 300,
   };
 };
 
-export default function AboutSlug({ blocks, active }: Props) {
-  if (!active) return <div className="p-10">Loading…</div>;
-  return <AboutPage blocks={blocks} active={active} />;
+export default function AboutSlug({ intro, articles }: Props) {
+  return <AboutSection intro={intro} initialArticles={articles} />;
 }

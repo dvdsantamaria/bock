@@ -1,4 +1,3 @@
-/* components/PhotographyPage.tsx */
 import { useEffect, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -6,17 +5,7 @@ import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-
-export interface PhotoItem {
-  id: number | "intro";
-  title: string;
-  subtitle?: string;
-  body?: string;
-  category: string;
-  slug: string;
-  imageThumb?: string;
-  imageFull?: string;
-}
+import { PhotoItem } from "@/types/photography";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
@@ -29,48 +18,49 @@ const theme = {
   sectionColor: "#cccccc",
 };
 
-const url = (p?: string) => (p && p.startsWith("/") ? `${API}${p}` : p ?? "");
+interface Props {
+  initialPhotos?: PhotoItem[];
+  initialIntro?: PhotoItem;
+}
 
-export default function PhotographyPage() {
+export default function PhotographyPage({
+  initialPhotos = [],
+  initialIntro,
+}: Props) {
   const { query, replace } = useRouter();
   const { category, slug } = query as { category?: string; slug?: string };
 
-  const [intro, setIntro] = useState<PhotoItem | null>(null);
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [intro, setIntro] = useState<PhotoItem | null>(initialIntro || null);
+  const [photos, setPhotos] = useState<PhotoItem[]>(initialPhotos);
+  const [loading, setLoading] = useState(
+    !initialIntro || initialPhotos.length === 0
+  );
 
-  /* carga todas las fotos y usa la primera como "intro" */
+  /* Carga datos solo si no se proporcionaron inicialmente */
   useEffect(() => {
+    if (initialIntro && initialPhotos.length > 0) return;
+
     (async () => {
       try {
-        const res = await fetch(
-          `${API}/api/photographies?populate=*&pagination[pageSize]=200`
-        );
-        const json = await res.json();
+        const res = await fetch(`${API}/photographies`);
+        const data = await res.json();
 
-        // Acceso a datos según estructura de Strapi v4
-        const list: PhotoItem[] = json.data.map((p: any) => {
-          const attributes = p.attributes || {};
-          return {
-            id: p.id,
-            title: attributes.title || "",
-            category:
-              attributes.category?.data?.attributes?.slug || "uncategorised",
-            slug: attributes.slug || "",
-            imageThumb: url(attributes.imageThumb?.data?.attributes?.url),
-            imageFull: url(attributes.imageFull?.data?.attributes?.url),
-          };
-        });
+        const photos: PhotoItem[] = data.map((photo: any) => ({
+          id: photo.id,
+          title: photo.title,
+          category: photo.category?.slug || "uncategorised",
+          slug: photo.slug,
+          imageThumb: photo.imageThumb?.url || "",
+          imageFull: photo.imageFull?.url || "",
+        }));
 
-        setPhotos(list);
+        setPhotos(photos);
 
-        if (list.length) {
-          const first = list[0];
+        if (photos.length > 0) {
+          const first = photos[0];
           setIntro({
-            id: "intro",
+            id: 0,
             title: first.title,
-            subtitle: first.category,
-            body: "",
             category: first.category,
             slug: first.slug,
             imageThumb: first.imageThumb,
@@ -83,17 +73,18 @@ export default function PhotographyPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [initialIntro, initialPhotos]);
 
-  /* redirección al primer slug si falta */
+  /* Redirección al primer slug si falta */
   useEffect(() => {
     if (loading || !photos.length || !category) return;
 
     const firstInCat = photos.find((p) => p.category === category);
     if (!firstInCat) return;
 
-    const slugBelongs =
-      slug && photos.some((p) => p.slug === slug && p.category === category);
+    const slugBelongs = photos.some(
+      (p) => p.slug === slug && p.category === category
+    );
 
     if (!slugBelongs) {
       replace(`/photography/${category}/${firstInCat.slug}`, undefined, {
@@ -104,16 +95,9 @@ export default function PhotographyPage() {
 
   if (loading || !intro) return <div className="p-10">Loading…</div>;
 
-  /* activo: slug válido > intro global */
-  const active =
-    slug && photos.find((p) => p.slug === slug)
-      ? (photos.find((p) => p.slug === slug) as PhotoItem)
-      : intro;
+  const active = slug ? photos.find((p) => p.slug === slug) || intro : intro;
 
-  /* sub-menú */
   const categories = Array.from(new Set(photos.map((p) => p.category))).sort();
-
-  /* thumbs filtrados */
   const thumbs = category
     ? photos.filter((p) => p.category === category)
     : photos;
@@ -131,7 +115,7 @@ export default function PhotographyPage() {
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={slug ?? active.id}
+            key={slug || "intro"}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
