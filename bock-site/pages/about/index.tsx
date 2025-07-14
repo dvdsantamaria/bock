@@ -22,15 +22,9 @@ export async function getStaticProps() {
 }
 
 export default function AboutIndex({ blocks }: Props) {
-  if (!blocks || blocks.length === 0) {
-    return <div className="p-10">No blocks found.</div>;
-  }
+  const active = blocks[0] ?? null;
 
-  const active = blocks[0];
-
-  if (!active) {
-    return <div className="p-10">Active block is missing.</div>;
-  }
+  if (!active) return <div className="p-10">No content found</div>;
 
   return <AboutPage blocks={blocks} active={active} />;
 }
