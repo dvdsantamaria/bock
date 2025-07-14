@@ -2,15 +2,15 @@ import { GetStaticPaths, GetStaticProps } from "next";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { PhotoItem } from "@/types/photography";
+import { ParsedUrlQuery } from "querystring";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-// Definir la interfaz para los parámetros de ruta
-interface PathParams {
+// Extender ParsedUrlQuery para satisfacer la restricción
+interface PathParams extends ParsedUrlQuery {
   category: string;
 }
 
-// Definir la interfaz para los props del componente
 interface Props {
   category: string;
   photos: PhotoItem[];
@@ -20,7 +20,8 @@ export const getStaticPaths: GetStaticPaths<PathParams> = async () => {
   const res = await fetch(`${API}/api/photographies?populate=Category`);
   const data = await res.json();
 
-  const categories = Array.from(
+  // Asegurar que categories sea un array de strings
+  const categories: string[] = Array.from(
     new Set(data.data.map((a: any) => a.Category?.slug || "uncategorised"))
   );
 
@@ -51,7 +52,7 @@ export const getStaticProps: GetStaticProps<Props, PathParams> = async ({
 
   return {
     props: {
-      category: params?.category || "", // Asegurar que siempre sea string
+      category: params?.category || "",
       photos,
     },
     revalidate: 60,
