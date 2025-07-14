@@ -1,7 +1,11 @@
+/* pages/photography/[category]/index.tsx
+   — al entrar en /photography/<category> te envía a una foto aleatoria de esa categoría — */
+
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import photos from "@/data/photography.json";
 
+/* tipado mínimo:  solo necesitamos la lista de artículos */
 interface PhotoItem {
   category: string;
   slug: string;

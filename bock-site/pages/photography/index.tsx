@@ -1,50 +1,23 @@
-import PhotographyPage from "@/components/PhotographyPage";
-import { GetStaticProps } from "next";
-import { PhotoItem } from "@/types/photography";
+import dynamic from "next/dynamic";
+import photographyJson from "@/data/photography.json";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+/* carga diferida para evitar hydration-warnings de <img> */
+const PhotographyPage = dynamic(() => import("@/components/PhotographyPage"), {
+  ssr: false,
+}) as any; // <- evita que TS se queje por las props adicionales
 
-export const getStaticProps: GetStaticProps = async () => {
-  try {
-    const res = await fetch(`${API}/photographies`);
-    const photos: PhotoItem[] = await res.json();
+export default function PhotographyIndex() {
+  const { intro, articles } = photographyJson as any;
 
-    let intro: PhotoItem | null = null;
-    if (photos.length > 0) {
-      const first = photos[0];
-      intro = {
-        id: 0,
-        title: first.title,
-        category: first.category,
-        slug: first.slug,
-        imageThumb: first.imageThumb,
-        imageFull: first.imageFull,
-      };
-    }
+  const related = articles.map((a: any) => ({
+    label: a.title,
+    href: `/photography/${a.category}/${a.slug}`,
+    thumb: a.imageThumb,
+  }));
 
-    return {
-      props: {
-        initialPhotos: photos,
-        initialIntro: intro,
-      },
-      revalidate: 60,
-    };
-  } catch (error) {
-    console.error("Error in getStaticProps:", error);
-    return {
-      props: {
-        initialPhotos: [],
-        initialIntro: null,
-      },
-    };
-  }
-};
+  const categories = Array.from(new Set(articles.map((a: any) => a.category)));
 
-export default function PhotographyHome({ initialPhotos, initialIntro }: any) {
   return (
-    <PhotographyPage
-      initialPhotos={initialPhotos}
-      initialIntro={initialIntro}
-    />
+    <PhotographyPage active={intro} related={related} categories={categories} />
   );
 }

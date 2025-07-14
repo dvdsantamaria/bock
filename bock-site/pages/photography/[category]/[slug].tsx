@@ -12,5 +12,9 @@ export default function PhotographyDetail() {
   // Evita que Next trate de renderizar en SSR sin datos.
   if (!category || !slug) return null;
 
+  /* 
+     PhotographyPage ya filtra la foto activa en función de
+     la ruta; no hace falta que le pasemos nada.
+  */
   return <PhotographyPage />;
 }
