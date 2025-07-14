@@ -36,7 +36,7 @@ export default function WritingPage({
     slug?: string;
   };
 
-  /* ---------- decide activo dinámicamente ---------- */
+  // Decide el artículo activo
   const byCategory = (cat: string) =>
     articles.filter((a) => a.category === cat);
 
@@ -50,14 +50,18 @@ export default function WritingPage({
     active = byCategory(category)[0] ?? initialActive;
   }
 
+  // Construye related para el activo (ya viene initialRelated para intro)
   const related =
     active === initialActive
       ? initialRelated
-      : byCategory((active as Article).category).filter(
-          (a) => a.slug !== (active as Article).slug
-        );
+      : byCategory((active as Article).category)
+          .filter((a) => a.slug !== (active as Article).slug)
+          .map((a) => ({
+            label: a.title,
+            href: `/writing/${a.category}/${a.slug}`,
+          }));
 
-  /* ---------- tema ---------- */
+  // Aplica tema
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -67,7 +71,6 @@ export default function WritingPage({
       Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
-  /* ---------- render ---------- */
   return (
     <>
       <Head>
@@ -97,12 +100,12 @@ export default function WritingPage({
                   </summary>
                   <ul className="px-4 py-2 space-y-1">
                     {related.map((r) => (
-                      <li key={r.slug}>
+                      <li key={r.href}>
                         <Link
-                          href={`/writing/${r.category}/${r.slug}`}
+                          href={r.href}
                           className="block text-sm hover:text-[var(--accent)]"
                         >
-                          {r.title}
+                          {r.label}
                         </Link>
                       </li>
                     ))}
@@ -111,7 +114,7 @@ export default function WritingPage({
               </div>
             )}
 
-            {/* artículo */}
+            {/* artículo principal */}
             <article
               className="
                 col-start-1 col-span-8
@@ -153,12 +156,12 @@ export default function WritingPage({
                 </h3>
                 <ul className="space-y-2">
                   {related.map((r) => (
-                    <li key={r.slug}>
+                    <li key={r.href}>
                       <Link
-                        href={`/writing/${r.category}/${r.slug}`}
+                        href={r.href}
                         className="block text-sm hover:text-[var(--accent)]"
                       >
-                        {r.title}
+                        {r.label}
                       </Link>
                     </li>
                   ))}
