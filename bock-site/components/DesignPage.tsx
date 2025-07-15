@@ -1,29 +1,17 @@
 /* components/DesignPage.tsx */
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-
-/* ───────── tipos ───────── */
-interface BaseItem {
-  id: number;
-  title: string;
-  subtitle?: string;
-  body: any;
-  slug: string;
-  imageThumb?: string;
-  imageFull?: string;
-}
-
-interface IntroItem {
-  title: string;
-  subtitle?: string;
-  body: any;
-  heroImage?: string;
-}
+import {
+  BaseItem,
+  IntroItem,
+  getDesignIntro,
+  getDesignArticles,
+} from "@/lib/design";
 
 /* ───────── tema ───────── */
 const theme = {
@@ -35,64 +23,24 @@ const theme = {
   sectionColor: "#000000",
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+type DesignPageProps = {
+  initialData: {
+    intro: IntroItem;
+    articles: BaseItem[];
+  };
+  initialSlug?: string;
+};
 
-export default function DesignPage() {
-  const { slug } = useRouter().query as { slug?: string };
+export default function DesignPage({
+  initialData,
+  initialSlug,
+}: DesignPageProps) {
+  const { query } = useRouter();
+  const routerSlug = query.slug as string | undefined;
 
-  const [intro, setIntro] = useState<IntroItem | null>(null);
-  const [articles, setArticles] = useState<BaseItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const slug = initialSlug ?? routerSlug;
+  const { intro, articles } = initialData;
 
-  /* ── fetch Strapi ── */
-  useEffect(() => {
-    (async () => {
-      try {
-        /* intro (single type) */
-        const introRaw = (
-          await (await fetch(`${API}/api/design-intro?populate=*`)).json()
-        ).data;
-        setIntro({
-          title: introRaw.title,
-          subtitle: introRaw.subtitle,
-          body: introRaw.content || introRaw.body,
-          heroImage: introRaw.imageFull?.url
-            ? `${API}${introRaw.imageFull.url}`
-            : undefined,
-        });
-
-        /* colección */
-        const artRaw = (
-          await (
-            await fetch(
-              `${API}/api/designs?populate=*&pagination[pageSize]=100`
-            )
-          ).json()
-        ).data;
-        setArticles(
-          artRaw.map((i: any) => ({
-            id: i.id,
-            title: i.title,
-            subtitle: i.subtitle,
-            body: i.body || i.content,
-            slug: i.slug,
-            imageThumb: i.imageThumb?.url
-              ? `${API}${i.imageThumb.url}`
-              : undefined,
-            imageFull: i.imageFull?.url
-              ? `${API}${i.imageFull.url}`
-              : undefined,
-          }))
-        );
-      } catch (err) {
-        console.error("Error fetching Design data:", err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  /* ── custom-props del tema ── */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -102,22 +50,24 @@ export default function DesignPage() {
       Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
-  if (loading || !intro) return <div className="p-10">Loading…</div>;
-
-  /* activo */
   const active = slug ? articles.find((a) => a.slug === slug) ?? intro : intro;
 
-  /* related */
   const related =
     "slug" in active
       ? articles.filter((a) => a.slug !== active.slug)
       : articles;
 
-  /* ── render ── */
+  const image =
+    "imageFull" in active
+      ? active.imageFull
+      : "heroImage" in active
+      ? active.heroImage
+      : null;
+
   return (
     <>
       <Head>
-        <title>{active.title}</title>
+        <title>{active.title || "Design"}</title>
       </Head>
 
       <MainLayout section="design" subMenuItems={["", "", ""]} theme={theme}>
@@ -162,21 +112,19 @@ export default function DesignPage() {
                 text-black space-y-6
               "
             >
-              {("imageFull" in active || "heroImage" in active) &&
-                ((active as any).imageFull || (active as any).heroImage) && (
+              {slug && image && (
+                <>
                   <img
-                    src={(active as any).imageFull ?? (active as any).heroImage}
+                    src={image}
                     alt={active.title}
                     className="w-full rounded-md border border-gray-300 object-cover"
                   />
-                )}
-
-              {("imageFull" in active || "heroImage" in active) && (
-                <hr className="border-t-4 border-[var(--accent)] my-6 w-1/2" />
+                  <hr className="border-t-4 border-[var(--accent)] my-6 w-1/2" />
+                </>
               )}
 
               <h1 className="text-3xl font-semibold">{active.title}</h1>
-              {"subtitle" in active && active.subtitle && (
+              {active.subtitle && (
                 <p className="italic text-gray-500">{active.subtitle}</p>
               )}
 
