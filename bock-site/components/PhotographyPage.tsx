@@ -1,34 +1,12 @@
 /* components/PhotographyPage.tsx */
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-
-/* ---------- tipos ---------- */
-export interface PhotoItem {
-  id: number | "intro";
-  title: string;
-  subtitle?: string;
-  body?: string;
-  category: string;
-  slug: string;
-  imageThumb?: string;
-  imageFull?: string;
-}
-
-/*  Para que pages/photography/[...].tsx pueda hacer:
-      import type { PhotographyJson } from "@/components/PhotographyPage"
-    (aunque en la versión que usa Strapi ya no cargamos un JSON local),
-    exportamos un tipo “vacío” con la misma forma que antes:             */
-export type PhotographyJson = {
-  intro: PhotoItem;
-  articles: PhotoItem[];
-};
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+import { PhotoItem } from "@/lib/photography";
 
 /* ---------- tema ---------- */
 const theme = {
@@ -40,60 +18,22 @@ const theme = {
   sectionColor: "#cccccc",
 };
 
-/* prefija la URL si empieza con “/” */
-const url = (p?: string) => (p && p.startsWith("/") ? `${API}${p}` : p ?? "");
+type PhotographyPageProps = {
+  initialData: {
+    photos: PhotoItem[];
+    intro: PhotoItem;
+  };
+};
 
-/* ─────────────────────────────────────────────── */
-export default function PhotographyPage() {
+export default function PhotographyPage({ initialData }: PhotographyPageProps) {
   const { query, replace } = useRouter();
   const { category, slug } = query as { category?: string; slug?: string };
 
-  const [intro, setIntro] = useState<PhotoItem | null>(null);
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  /* carga todas las fotos y usa la primera como “intro” */
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(
-          `${API}/api/photographies?populate=*&pagination[pageSize]=200`
-        );
-        const json = await res.json();
-        const list: PhotoItem[] = (json.data as any[]).map((p) => ({
-          id: p.id,
-          title: p.title,
-          category: p.Category?.slug || "uncategorised",
-          slug: p.slug,
-          imageThumb: url(p.imageThumb?.url),
-          imageFull: url(p.imageFull?.url),
-        }));
-        setPhotos(list);
-
-        if (list.length) {
-          const first = list[0];
-          setIntro({
-            id: "intro",
-            title: first.title,
-            subtitle: first.category,
-            body: "",
-            category: first.category,
-            slug: first.slug,
-            imageThumb: first.imageThumb,
-            imageFull: first.imageFull,
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching photographs:", err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const { photos, intro } = initialData;
 
   /* redirección al primer slug si falta */
   useEffect(() => {
-    if (loading || !photos.length || !category) return;
+    if (!category || !photos.length) return;
 
     const firstInCat = photos.find((p) => p.category === category);
     if (!firstInCat) return;
@@ -106,9 +46,7 @@ export default function PhotographyPage() {
         shallow: true,
       });
     }
-  }, [loading, photos, category, slug, replace]);
-
-  if (loading || !intro) return <div className="p-10">Loading…</div>;
+  }, [photos, category, slug, replace]);
 
   /* activo: slug válido > intro global */
   const active =
@@ -167,7 +105,7 @@ export default function PhotographyPage() {
                       className="block"
                     >
                       <img
-                        src={t.imageThumb}
+                        src={t.imageThumb || ""}
                         alt={t.title}
                         className="w-full aspect-video object-cover rounded-md border border-gray-300 hover:border-[var(--accent)] transition"
                       />

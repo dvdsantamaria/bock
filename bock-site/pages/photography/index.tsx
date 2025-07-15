@@ -1,23 +1,44 @@
+/* pages/photography/index.tsx */
+import { GetStaticProps } from "next";
 import dynamic from "next/dynamic";
-import photographyJson from "@/data/photography.json";
+import {
+  getAllPhotographies,
+  PhotoItem,
+  getCategories,
+} from "@/lib/photography";
 
-/* carga diferida para evitar hydration-warnings de <img> */
 const PhotographyPage = dynamic(() => import("@/components/PhotographyPage"), {
   ssr: false,
-}) as any; // <- evita que TS se queje por las props adicionales
+});
 
-export default function PhotographyIndex() {
-  const { intro, articles } = photographyJson as any;
-
-  const related = articles.map((a: any) => ({
-    label: a.title,
-    href: `/photography/${a.category}/${a.slug}`,
-    thumb: a.imageThumb,
-  }));
-
-  const categories = Array.from(new Set(articles.map((a: any) => a.category)));
-
-  return (
-    <PhotographyPage active={intro} related={related} categories={categories} />
-  );
+interface PageProps {
+  initialData: {
+    photos: PhotoItem[];
+    intro: PhotoItem;
+  };
 }
+
+export default function PhotographyHome({ initialData }: PageProps) {
+  return <PhotographyPage initialData={initialData} />;
+}
+
+export const getStaticProps: GetStaticProps = async () => {
+  const photos = await getAllPhotographies();
+  const intro = photos.length > 0 ? photos[0] : null;
+
+  if (!intro) {
+    return {
+      notFound: true,
+    };
+  }
+
+  return {
+    props: {
+      initialData: {
+        photos,
+        intro,
+      },
+    },
+    revalidate: 60, // ISR cada 60 segundos
+  };
+};

@@ -1,38 +1,36 @@
-/* pages/photography/[category]/index.tsx
-   — al entrar en /photography/<category> te envía a una foto aleatoria de esa categoría — */
-
-import { useEffect } from "react";
+/* pages/photography/[category]/index.tsx */
+import { GetStaticPaths, GetStaticProps } from "next";
 import { useRouter } from "next/router";
-import photos from "@/data/photography.json";
-
-/* tipado mínimo:  solo necesitamos la lista de artículos */
-interface PhotoItem {
-  category: string;
-  slug: string;
-}
+import { getRandomPhotoForCategory, PhotoItem } from "@/lib/photography";
 
 export default function PhotographyCategoryRedirect() {
   const router = useRouter();
-  const { category } = router.query as { category?: string };
-
-  useEffect(() => {
-    if (!category) return; // aún sin hidratar
-
-    /* filtra todos los ítems de la categoría */
-    const list = (photos as { articles: PhotoItem[] }).articles.filter(
-      (p) => p.category === category
-    );
-
-    /* si hay fotos ⇒ redirige a una aleatoria;
-          si no existe la categoría, vuelve al índice general */
-    if (list.length) {
-      const random = list[Math.floor(Math.random() * list.length)];
-      router.replace(`/photography/${random.category}/${random.slug}`);
-    } else {
-      router.replace("/photography");
-    }
-  }, [category, router]);
-
-  /* nada que mostrar mientras redirige */
+  // La redirección real se maneja en el componente PhotographyPage
   return null;
 }
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  // Pre-generamos paths para todas las categorías
+  return {
+    paths: [],
+    fallback: "blocking",
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  const category = params?.category as string;
+
+  // Redirigimos directamente a una foto aleatoria
+  const randomPhoto = await getRandomPhotoForCategory(category);
+
+  if (!randomPhoto) {
+    return { notFound: true };
+  }
+
+  return {
+    redirect: {
+      destination: `/photography/${category}/${randomPhoto.slug}`,
+      permanent: false,
+    },
+  };
+};
