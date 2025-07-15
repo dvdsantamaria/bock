@@ -4,43 +4,51 @@ import path from "path";
 
 export default (config, { strapi }) => {
   return async (ctx, next) => {
-    // Intercepta solo uploads de imagen
-    if (
-      ctx.request.files &&
-      ctx.request.files.files &&
-      ctx.request.files.files.type &&
-      ctx.request.files.files.type.startsWith("image/")
-    ) {
-      const file = ctx.request.files.files;
+    console.log("🟡 Middleware watermark activo");
 
-      // Ruta del watermark SVG (ajustá si hace falta)
+    try {
+      const files = ctx.request.files?.files;
+      const isImage = files?.type?.startsWith("image/");
+
+      if (!files) {
+        console.log("⚪ No se encontró archivo en la request");
+        return await next();
+      }
+
+      if (!isImage) {
+        console.log("⚪ El archivo no es una imagen. Tipo:", files.type);
+        return await next();
+      }
+
+      console.log("📷 Imagen detectada:", {
+        name: files.name,
+        path: files.path,
+        size: files.size,
+        type: files.type,
+      });
+
       const watermarkPath = path.join(__dirname, "../../public/watermark.svg");
-
-      // Leé el SVG del watermark
       const watermarkSVG = await fs.readFile(watermarkPath);
 
-      // Procesá la imagen con Sharp
-      const image = sharp(file.path);
+      const image = sharp(files.path);
       const meta = await image.metadata();
 
-      // Calculá el alto del watermark (15% del alto de la imagen)
-      const wmHeight = Math.round((meta.height || 0) * 0.15);
+      console.log("🔍 Metadatos de la imagen:", meta);
 
-      // Redimensioná el SVG
+      const wmHeight = Math.round((meta.height || 0) * 0.15);
       const watermarkBuffer = await sharp(watermarkSVG)
         .resize({ height: wmHeight })
         .toBuffer();
 
-      // Posición: margen 3% derecha y abajo
       const marginRight = Math.round((meta.width || 0) * 0.03);
       const marginBottom = Math.round((meta.height || 0) * 0.03);
-
-      // Tamaño watermark
       const wmMeta = await sharp(watermarkBuffer).metadata();
+
       const left = (meta.width || 0) - (wmMeta.width || 0) - marginRight;
       const top = (meta.height || 0) - (wmMeta.height || 0) - marginBottom;
 
-      // Aplica el watermark a la imagen original
+      console.log("🧩 Posición del watermark:", { left, top });
+
       await image
         .composite([
           {
@@ -50,13 +58,17 @@ export default (config, { strapi }) => {
             blend: "over",
           },
         ])
-        .toFile(file.path + "_wm");
+        .toFile(files.path + "_wm");
 
-      // Reemplaza el archivo original por el watermarkeado
-      await fs.rename(file.path + "_wm", file.path);
+      console.log("✅ Watermark aplicado. Reemplazando archivo...");
+
+      await fs.rename(files.path + "_wm", files.path);
+
+      console.log("✅ Imagen reemplazada con éxito");
+    } catch (err) {
+      console.error("🔴 Error en middleware de watermark:", err);
     }
 
-    // Sigue el middleware chain
     await next();
   };
 };
