@@ -1,23 +1,23 @@
 // config/middlewares.ts
-console.info('🟢 middlewares.ts loaded');
+console.info("🟢 middlewares.ts loaded");
 
 export default [
-  'strapi::errors',
-  'strapi::security',
+  "strapi::errors",
+  "strapi::security",
   {
-    name: 'strapi::cors',
+    name: "strapi::cors",
     config: {
-      origin: [
-        'http://109.235.65.193:3000',
-        'http://localhost:3000',
-      ],
+      origin: ["http://109.235.65.193:3000", "http://localhost:3000"],
       credentials: true,
-      methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     },
   },
-  'strapi::query',    // ← ¡Obligatorio!
-  'strapi::body',
-  'strapi::session',
-  'strapi::favicon',
-  'strapi::public',
+  "strapi::query",
+  "strapi::body",
+  "strapi::session",
+  "strapi::favicon",
+  {
+    name: "global::watermark",
+  },
+  "strapi::public",
 ];
