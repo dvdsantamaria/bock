@@ -9,7 +9,7 @@ import TopStrokes from "@/components/TopStrokes";
 /* Importar funciones de API */
 import { getAboutArticles } from "@/lib/about";
 import { getDesignArticles } from "@/lib/design";
-import { getAllPhotographies } from "@/lib/photography";
+import { getPhotographyPhotos } from "@/lib/photography";
 import { getWritingArticles } from "@/lib/writing";
 
 /* helpers */
@@ -18,12 +18,28 @@ const toSlug = (s: string) =>
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^\w-]/g, "");
+
 const sampleN = <T,>(arr: T[], n: number) =>
   [...arr].sort(() => 0.5 - Math.random()).slice(0, n);
+
 type Thumb = { src: string; href: string; alt: string };
 
+// Función mejorada para normalizar rutas de imágenes
+const normalizeImagePath = (path: string) => {
+  // Si la ruta ya es una URL completa, devolverla tal cual
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  // Eliminar barras iniciales múltiples y espacios
+  const cleaned = path.replace(/^\/+/, "").trim();
+
+  // Asegurar que comience con una sola barra
+  return `/${cleaned}`;
+};
+
 interface HomeProps {
-  writingData: any[]; // Ajustar con tipos específicos
+  writingData: any[];
   photoData: any[];
   designData: any[];
   aboutData: any[];
@@ -49,21 +65,23 @@ export default function Home({
   useEffect(() => {
     setPhotoThumbs(
       sampleN(photoData, 3).map((p) => ({
-        src: "/" + p.imageThumb.replace(/^\/+/, ""),
+        src: normalizeImagePath(p.imageThumb),
         href: `/photography/${p.category}/${p.slug}`,
         alt: p.title,
       }))
     );
+
     setDesignThumbs(
       sampleN(designData, 3).map((d) => ({
-        src: "/" + d.imageThumb.replace(/^\/+/, ""),
+        src: normalizeImagePath(d.imageThumb),
         href: `/design/${d.slug}`,
         alt: d.title,
       }))
     );
+
     setPubThumbs(
       sampleN(aboutData, 3).map((p) => ({
-        src: "/" + p.imageThumb.replace(/^\/+/, ""),
+        src: normalizeImagePath(p.imageThumb),
         href: `/about#${toSlug(p.title)}`,
         alt: p.title,
       }))
@@ -117,7 +135,7 @@ export default function Home({
 export async function getStaticProps() {
   // Obtener datos de las APIs
   const writingData = await getWritingArticles();
-  const photoData = await getAllPhotographies();
+  const photoData = await getPhotographyPhotos();
   const designData = await getDesignArticles();
   const aboutData = await getAboutArticles();
 
@@ -128,7 +146,7 @@ export async function getStaticProps() {
       designData,
       aboutData,
     },
-    revalidate: 60, // Revalidar cada minuto (opcional)
+    revalidate: 60,
   };
 }
 
