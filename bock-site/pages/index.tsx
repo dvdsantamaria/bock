@@ -9,8 +9,8 @@ import TopStrokes from "@/components/TopStrokes";
 /* Importar funciones de API */
 import { getAboutArticles } from "@/lib/about";
 import { getDesignArticles } from "@/lib/design";
-import { getPhotographyPhotos } from "@/lib/photography";
-import { getWritingArticles } from "@/lib/writing";
+import { getAllPhotographies } from "@/lib/photography";
+import { getWritingArticles } from "../lib/writing";
 
 /* helpers */
 const toSlug = (s: string) =>
@@ -135,7 +135,7 @@ export default function Home({
 export async function getStaticProps() {
   // Obtener datos de las APIs
   const writingData = await getWritingArticles();
-  const photoData = await getPhotographyPhotos();
+  const photoData = await getAllPhotographies();
   const designData = await getDesignArticles();
   const aboutData = await getAboutArticles();
 
