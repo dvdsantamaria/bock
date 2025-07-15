@@ -1,7 +1,13 @@
 import WritingPage from "@/components/WritingPage";
-import type { Intro, Article, LinkItem } from "@/types/writing";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+import {
+  getWritingIntro,
+  getWritingArticles,
+  getWritingCategories,
+  getWritingSlugs,
+  Article,
+  Intro,
+  LinkItem,
+} from "@/lib/writing";
 
 interface Props {
   active: Intro | Article;
@@ -11,15 +17,14 @@ interface Props {
 }
 
 export async function getStaticPaths() {
-  const res = await fetch(`${API}/api/writings?populate=Category`);
-  const data = await res.json();
-  const paths = data.data.map((item: any) => ({
-    params: {
-      category: item.Category?.slug || "uncategorised",
-      slug: item.slug,
-    },
-  }));
-  return { paths, fallback: false };
+  const slugs = await getWritingSlugs();
+
+  return {
+    paths: slugs.map(({ category, slug }) => ({
+      params: { category, slug },
+    })),
+    fallback: "blocking",
+  };
 }
 
 export async function getStaticProps({
@@ -29,46 +34,44 @@ export async function getStaticProps({
 }) {
   const { category, slug } = params;
 
-  const introRaw = await fetch(`${API}/api/writing-intro`).then((r) =>
-    r.json()
-  );
-  const introData = introRaw.data;
-  const intro: Intro = {
-    id: "intro",
-    title: introData.name || introData.title,
-    subtitle: introData.subtitle || null,
-    body: introData.content || introData.body,
-    slug: introData.slug,
-    category: "intro",
-  };
+  const intro = await getWritingIntro();
+  const articles = await getWritingArticles();
 
-  const artRaw = await fetch(
-    `${API}/api/writings?populate=*&pagination[pageSize]=100`
-  ).then((r) => r.json());
-  const articles: Article[] = artRaw.data.map((it: any) => ({
-    id: it.id,
-    title: it.title,
-    subtitle: it.subtitle,
-    body: it.body || it.content,
-    slug: it.slug,
-    category: it.Category?.slug || "uncategorised",
-  }));
-
+  // Buscar artículo por slug y category
   const article =
-    articles.find((a) => a.slug === slug && a.category === category) ?? intro;
+    articles.find((a) => a.slug === slug && a.category === category) || null;
+
+  // Si no se encuentra, podés devolver notFound o mostrar intro
+  if (!article) {
+    // return { notFound: true }; // Esta es la opción estricta
+    return {
+      props: {
+        active: intro,
+        related: [],
+        categories: await getWritingCategories(),
+        articles,
+      },
+      revalidate: 60,
+    };
+  }
+
+  // Artículos relacionados (mismo category, distinto slug)
   const related: LinkItem[] = articles
     .filter((a) => a.category === category && a.slug !== slug)
     .map((a) => ({
       label: a.title,
-      href: `/writing/${a.category}/${a.slug}`,
+      href: `/writing/${category}/${a.slug}`,
     }));
 
-  const categories: string[] = Array.from(
-    new Set(articles.map((a) => a.category))
-  );
+  const categories = await getWritingCategories();
 
   return {
-    props: { active: article, related, categories, articles },
+    props: {
+      active: article,
+      related,
+      categories,
+      articles,
+    },
     revalidate: 60,
   };
 }

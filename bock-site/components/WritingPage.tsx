@@ -5,7 +5,7 @@ import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import type { Intro, Article, LinkItem } from "@/types/writing";
+import type { Article, Intro, LinkItem } from "@/lib/writing";
 
 interface Props {
   active: Intro | Article;

@@ -6,11 +6,11 @@ import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import TopStrokes from "@/components/TopStrokes";
 
-/* data */
-import writing from "@/data/writing.json";
-import photos from "@/data/photography.json";
-import design from "@/data/design.json";
-import about from "@/data/about.json";
+/* Importar funciones de API */
+import { getAboutArticles } from "@/lib/about";
+import { getDesignArticles } from "@/lib/design";
+import { getAllPhotographies } from "@/lib/photography";
+import { getWritingArticles } from "@/lib/writing";
 
 /* helpers */
 const toSlug = (s: string) =>
@@ -22,9 +22,21 @@ const sampleN = <T,>(arr: T[], n: number) =>
   [...arr].sort(() => 0.5 - Math.random()).slice(0, n);
 type Thumb = { src: string; href: string; alt: string };
 
-export default function Home() {
+interface HomeProps {
+  writingData: any[]; // Ajustar con tipos específicos
+  photoData: any[];
+  designData: any[];
+  aboutData: any[];
+}
+
+export default function Home({
+  writingData,
+  photoData,
+  designData,
+  aboutData,
+}: HomeProps) {
   /* -------- links escritura -------- */
-  const writingLinks = writing.articles.slice(0, 18).map((a) => ({
+  const writingLinks = writingData.slice(0, 18).map((a) => ({
     label: a.title,
     href: `/writing/${a.category}/${a.slug}`,
   }));
@@ -36,27 +48,27 @@ export default function Home() {
 
   useEffect(() => {
     setPhotoThumbs(
-      sampleN(photos.articles, 3).map((p) => ({
+      sampleN(photoData, 3).map((p) => ({
         src: "/" + p.imageThumb.replace(/^\/+/, ""),
         href: `/photography/${p.category}/${p.slug}`,
         alt: p.title,
       }))
     );
     setDesignThumbs(
-      sampleN(design.articles, 3).map((d) => ({
+      sampleN(designData, 3).map((d) => ({
         src: "/" + d.imageThumb.replace(/^\/+/, ""),
         href: `/design/${d.slug}`,
         alt: d.title,
       }))
     );
     setPubThumbs(
-      sampleN(about.articles, 3).map((p) => ({
+      sampleN(aboutData, 3).map((p) => ({
         src: "/" + p.imageThumb.replace(/^\/+/, ""),
         href: `/about#${toSlug(p.title)}`,
         alt: p.title,
       }))
     );
-  }, []);
+  }, [photoData, designData, aboutData]);
 
   return (
     <>
@@ -100,6 +112,24 @@ export default function Home() {
       </MainLayout>
     </>
   );
+}
+
+export async function getStaticProps() {
+  // Obtener datos de las APIs
+  const writingData = await getWritingArticles();
+  const photoData = await getAllPhotographies();
+  const designData = await getDesignArticles();
+  const aboutData = await getAboutArticles();
+
+  return {
+    props: {
+      writingData,
+      photoData,
+      designData,
+      aboutData,
+    },
+    revalidate: 60, // Revalidar cada minuto (opcional)
+  };
 }
 
 /* ---------- helpers visuales ---------- */

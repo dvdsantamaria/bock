@@ -1,7 +1,13 @@
+// pages/writing/index.tsx
 import WritingPage from "@/components/WritingPage";
-import type { Intro, Article, LinkItem } from "@/types/writing";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+import {
+  getWritingIntro,
+  getWritingArticles,
+  getWritingCategories,
+  type Intro,
+  type Article,
+  type LinkItem,
+} from "@/lib/writing";
 
 interface Props {
   intro: Intro;
@@ -11,45 +17,44 @@ interface Props {
 }
 
 export async function getStaticProps() {
-  const introRaw = await fetch(`${API}/api/writing-intro`).then((r) =>
-    r.json()
-  );
-  const introData = introRaw.data;
-  const intro: Intro = {
-    id: "intro",
-    title: introData.name || introData.title,
-    subtitle: introData.subtitle || null,
-    body: introData.content || introData.body,
-    slug: introData.slug,
-    category: "intro",
-  };
+  try {
+    const intro = await getWritingIntro();
+    const articles = await getWritingArticles();
+    const categories = await getWritingCategories();
 
-  const artRaw = await fetch(
-    `${API}/api/writings?populate=*&pagination[pageSize]=100`
-  ).then((r) => r.json());
+    const related: LinkItem[] = articles.map((a) => ({
+      label: a.title,
+      href: `/writing/${a.category}/${a.slug}`,
+    }));
 
-  const articles: Article[] = artRaw.data.map((it: any) => ({
-    id: it.id,
-    title: it.title,
-    subtitle: it.subtitle,
-    body: it.body || it.content,
-    slug: it.slug,
-    category: it.Category?.slug || "uncategorised",
-  }));
-
-  const related: LinkItem[] = articles.map((a) => ({
-    label: a.title,
-    href: `/writing/${a.category}/${a.slug}`,
-  }));
-
-  const categories: string[] = Array.from(
-    new Set(articles.map((a) => a.category))
-  );
-
-  return {
-    props: { intro, articles, related, categories },
-    revalidate: 60,
-  };
+    return {
+      props: {
+        intro,
+        articles,
+        related,
+        categories,
+      },
+      revalidate: 60, // ISR cada 60 segundos
+    };
+  } catch (error) {
+    console.error("Error in getStaticProps:", error);
+    return {
+      props: {
+        intro: {
+          id: "intro",
+          title: "Writing",
+          subtitle: null,
+          body: null,
+          slug: "intro",
+          category: "intro",
+        },
+        articles: [],
+        related: [],
+        categories: [],
+      },
+      revalidate: 10, // Reintentar más pronto si hay error
+    };
+  }
 }
 
 export default function WritingIndex({
