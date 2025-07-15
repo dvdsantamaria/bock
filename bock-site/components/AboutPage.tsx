@@ -6,24 +6,7 @@ import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-
-/* ---------- tipos ---------- */
-interface Article {
-  id: number;
-  title: string;
-  subtitle?: string;
-  body: any;
-  slug: string;
-  imageThumb?: string;
-  imageFull?: string;
-}
-
-interface Intro {
-  title: string;
-  subtitle?: string;
-  body: any;
-  heroImage?: string;
-}
+import { Article, Intro } from "@/lib/about";
 
 /* ---------- tema local ---------- */
 const theme = {
@@ -35,32 +18,24 @@ const theme = {
   sectionColor: "#000000",
 };
 
-/* ---------- props ---------- */
-type AboutPageProps = {
+type AboutSectionProps = {
   initialData: {
     intro: Intro;
     articles: Article[];
   };
-  initialSlug?: string | null;
+  initialSlug?: string;
 };
 
 export default function AboutSection({
   initialData,
   initialSlug,
-}: AboutPageProps) {
-  const { intro, articles } = initialData;
+}: AboutSectionProps) {
   const { query } = useRouter();
-  const { slug: routerSlug } = query as { slug?: string | string[] };
+  const routerSlug = query.slug as string | undefined;
 
-  // slug viene de SSG o de la navegación cliente
-  const slug =
-    typeof initialSlug === "string"
-      ? initialSlug
-      : Array.isArray(routerSlug)
-      ? routerSlug[0]
-      : routerSlug;
+  const slug = initialSlug ?? routerSlug;
+  const { intro, articles } = initialData;
 
-  /* ----- set CSS custom-props ----- */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -70,7 +45,6 @@ export default function AboutSection({
       Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
-  /* ----- artículo activo y relacionados ----- */
   const active =
     slug && typeof slug === "string"
       ? articles.find((a) => a.slug === slug) ?? intro
@@ -79,11 +53,17 @@ export default function AboutSection({
   const related =
     active === intro ? articles : articles.filter((a) => a.slug !== slug);
 
-  /* ---------- render ---------- */
+  const image =
+    "imageFull" in active
+      ? active.imageFull
+      : "heroImage" in active
+      ? active.heroImage
+      : null;
+
   return (
     <>
       <Head>
-        <title>{active.title}</title>
+        <title>{active.title || "About"}</title>
       </Head>
 
       <MainLayout section="about" subMenuItems={["", "", ""]} theme={theme}>
@@ -96,7 +76,7 @@ export default function AboutSection({
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
-            {/* dropdown mobile */}
+            {/* Mobile dropdown */}
             {related.length > 0 && (
               <div className="col-span-8 md:hidden px-4 pt-4">
                 <details className="border border-gray-300 rounded-md bg-white">
@@ -106,12 +86,12 @@ export default function AboutSection({
                   <ul className="px-4 py-2 space-y-1">
                     {related.map((r) => (
                       <li key={r.slug}>
-                        <Link
+                        <a
                           href={`/about/${r.slug}`}
                           className="block text-sm hover:text-[var(--accent)]"
                         >
                           {r.title}
-                        </Link>
+                        </a>
                       </li>
                     ))}
                   </ul>
@@ -119,19 +99,15 @@ export default function AboutSection({
               </div>
             )}
 
-            {/* artículo principal */}
+            {/* Artículo principal */}
             <article className="col-start-1 md:col-start-3 col-span-8 md:col-span-7 text-black p-6 md:p-10 space-y-6">
-              {(active as any).imageFull || (active as any).heroImage
-                ? slug && (
-                    <img
-                      src={
-                        (active as any).imageFull || (active as any).heroImage
-                      }
-                      alt={active.title}
-                      className="w-full rounded-md border border-gray-300 object-cover"
-                    />
-                  )
-                : null}
+              {slug && image && (
+                <img
+                  src={image}
+                  alt={active.title}
+                  className="w-full rounded-md border border-gray-300 object-cover"
+                />
+              )}
 
               {slug && (
                 <hr className="border-t-4 border-[var(--accent)] my-6 w-1/2" />
@@ -139,7 +115,7 @@ export default function AboutSection({
 
               <h1 className="text-3xl font-semibold">{active.title}</h1>
 
-              {"subtitle" in active && active.subtitle && (
+              {active.subtitle && (
                 <p className="italic text-gray-500">{active.subtitle}</p>
               )}
 
@@ -160,7 +136,7 @@ export default function AboutSection({
                 : null}
             </article>
 
-            {/* aside desktop */}
+            {/* Aside desktop */}
             {related.length > 0 && (
               <aside className="hidden md:block col-start-10 col-span-2 md:pt-[42px]">
                 <h3
