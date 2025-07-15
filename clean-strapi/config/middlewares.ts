@@ -1,4 +1,3 @@
-// config/middlewares.ts
 console.info("🟢 middlewares.ts loaded");
 
 export default [
@@ -16,8 +15,5 @@ export default [
   "strapi::body",
   "strapi::session",
   "strapi::favicon",
-  {
-    name: "global::watermark",
-  },
   "strapi::public",
 ];
