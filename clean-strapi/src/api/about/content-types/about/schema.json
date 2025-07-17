@@ -21,25 +21,40 @@
     "body": {
       "type": "blocks"
     },
-    "imageThumb": {
-      "type": "media",
-      "multiple": false,
-      "allowedTypes": [
-        "images",
-        "files",
-        "videos",
-        "audios"
-      ]
-    },
     "imageFull": {
       "type": "media",
       "multiple": false,
-      "allowedTypes": [
-        "images",
-        "files",
-        "videos",
-        "audios"
-      ]
+      "allowedTypes": ["images"],
+      "pluginOptions": {
+        "upload": {
+          "displayName": "Image"
+        }
+      }
+    },
+    "thumbPos": {
+      "type": "enumeration",
+      "enum": ["top", "center", "bottom"],
+      "default": "center",
+      "pluginOptions": {
+        "i18n": {
+          "localized": false
+        }
+      },
+      "config": {
+        "label": "Thumbnail position"
+      }
+    },
+    "imageWatermarked": {
+      "type": "string"
+    },
+    "imageThumbTop": {
+      "type": "string"
+    },
+    "imageThumbCenter": {
+      "type": "string"
+    },
+    "imageThumbBottom": {
+      "type": "string"
     }
   }
 }

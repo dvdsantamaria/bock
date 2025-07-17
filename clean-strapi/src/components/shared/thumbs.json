@@ -1,0 +1,11 @@
+{
+  "collectionName": "components_shared_thumbs",
+  "info": {
+    "displayName": "Thumbs"
+  },
+  "attributes": {
+    "top": { "type": "string" },
+    "center": { "type": "string" },
+    "bottom": { "type": "string" }
+  }
+}
