@@ -1,3 +1,5 @@
+// ./src/api/about/content-types/about/lifecycles.ts
+
 import { v2 as cloudinary } from "cloudinary";
 import axios from "axios";
 import fs from "fs";
@@ -29,35 +31,60 @@ const uploadToCloudinary = async (filePath: string, publicId: string) => {
 
 export default {
   async afterCreate(event) {
+    debugger;
     try {
       const { result } = event;
       const imageUrl = result.imageFull?.url;
+
+      console.log("🟡 afterCreate hook fired for ID:", result?.id);
+      if (!imageUrl) {
+        console.warn("⚠️ No imageFull.url found");
+        return;
+      }
+
       const allowedPositions = ["top", "center", "bottom"] as const;
       const thumbPos = allowedPositions.includes(result.thumbPos)
         ? result.thumbPos
         : "center";
 
-      if (!imageUrl) return;
-
+      // Extrae la ruta de transformación base desde la URL original
       const match = imageUrl.match(/upload\/(v\d+\/[^.]+\.jpg)/);
-      if (!match || match.length < 2) return;
+      if (!match || match.length < 2) {
+        console.error("❌ Could not extract baseTransform from URL:", imageUrl);
+        return;
+      }
       const baseTransform = match[1];
 
+      // Extrae publicId (sin versión ni extensión)
       const publicIdMatch = imageUrl.match(/upload\/v\d+\/([^\.]+)/);
-      if (!publicIdMatch || publicIdMatch.length < 2) return;
+      if (!publicIdMatch || publicIdMatch.length < 2) {
+        console.error("❌ Could not extract publicId from URL:", imageUrl);
+        return;
+      }
       const publicId = publicIdMatch[1];
 
+      console.log("🔧 baseTransform:", baseTransform);
+      console.log("🔧 publicId:", publicId);
+      console.log("🔧 thumbPos:", thumbPos);
+
+      // Armar URLs transformadas en Cloudinary
       const thumbTransform = `c_fill,ar_3:2,g_${thumbPos},w_300/${baseTransform}`;
       const watermarkTransform = `l_Artboard_1_2x_g8mel6,o_50,g_south_east,x_10,y_10/${baseTransform}`;
 
       const thumbUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_NAME}/image/upload/${thumbTransform}`;
       const watermarkUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_NAME}/image/upload/${watermarkTransform}`;
 
+      console.log("🌐 Downloading thumb URL:", thumbUrl);
+      console.log("🌐 Downloading watermark URL:", watermarkUrl);
+
+      // Paths temporales
       const tmpThumb = path.join(tmpdir(), `${publicId}_thumb.jpg`);
       const tmpWatermark = path.join(tmpdir(), `${publicId}_watermark.jpg`);
 
       await downloadImage(thumbUrl, tmpThumb);
       await downloadImage(watermarkUrl, tmpWatermark);
+
+      console.log("📥 Download complete, uploading to Cloudinary...");
 
       const uploadedThumb = await uploadToCloudinary(
         tmpThumb,
@@ -72,6 +99,13 @@ export default {
       fs.unlinkSync(tmpWatermark);
 
       const thumbKey = `imageThumb${thumbPos[0].toUpperCase()}${thumbPos.slice(1)}`;
+
+      console.log("✅ Upload success. Updating Strapi entry...");
+      console.log("📝 Updating fields:", {
+        [thumbKey]: uploadedThumb,
+        imageWatermarked: uploadedWatermark,
+      });
+
       await strapi.entityService.update("api::about.about", result.id, {
         data: {
           imageWatermarked: uploadedWatermark,
@@ -79,9 +113,9 @@ export default {
         },
       } as any);
 
-      console.log(`Image processed: ${publicId}`);
+      console.log(`🎉 Image processing complete for ID ${result.id}`);
     } catch (err) {
-      console.error("Error processing image:", err);
+      console.error("❌ Error processing image in afterCreate:", err);
     }
   },
 };
