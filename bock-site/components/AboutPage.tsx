@@ -6,7 +6,7 @@ import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Article, Intro as BaseIntro } from "@/lib/about";
+import { Article, Intro } from "@/lib/about";
 
 /* ---------- tema local ---------- */
 const theme: Record<string, string> = {
@@ -18,20 +18,18 @@ const theme: Record<string, string> = {
   sectionColor: "#000000",
 };
 
-// Extendemos el tipo Intro para incluir los campos nuevos
-interface Intro extends BaseIntro {
-  thumbPos?: "top" | "center" | "bottom";
-  imageThumbTop?: string | null;
-  imageThumbCenter?: string | null;
-  imageThumbBottom?: string | null;
-}
-
 type AboutSectionProps = {
-  initialData: {
-    intro: Intro;
-    articles: Article[];
-  };
+  initialData: { intro: Intro; articles: Article[] };
   initialSlug?: string;
+};
+
+/** Devuelve el thumb correcto según thumbPos (o -center por defecto) */
+const pickThumb = (a: Partial<Article & Intro>): string | null => {
+  if (!("thumbPos" in a)) return null;
+
+  const pos = (a.thumbPos ?? "center") as "top" | "center" | "bottom";
+  const key = `imageThumb${pos[0].toUpperCase()}${pos.slice(1)}` as const;
+  return (a as any)[key] ?? null;
 };
 
 export default function AboutSection({
@@ -39,19 +37,10 @@ export default function AboutSection({
   initialSlug,
 }: AboutSectionProps) {
   const { query } = useRouter();
-  const routerSlug = query.slug as string | undefined;
-
-  const slug = initialSlug ?? routerSlug;
+  const slug = (initialSlug ?? query.slug) as string | undefined;
   const { intro, articles } = initialData;
 
-  const thumbMap: Record<"top" | "center" | "bottom", string | undefined> = {
-    top: intro.imageThumbTop || undefined,
-    center: intro.imageThumbCenter || undefined,
-    bottom: intro.imageThumbBottom || undefined,
-  };
-
-  const thumbUrl = intro.thumbPos ? thumbMap[intro.thumbPos] : undefined;
-
+  /* ---------- set CSS vars ---------- */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -61,20 +50,19 @@ export default function AboutSection({
       Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
-  const active =
-    slug && typeof slug === "string"
-      ? articles.find((a) => a.slug === slug) ?? intro
-      : intro;
-
+  /* ---------- qué artículo se muestra ---------- */
+  const active = slug ? articles.find((a) => a.slug === slug) ?? intro : intro;
   const related =
     active === intro ? articles : articles.filter((a) => a.slug !== slug);
 
-  const image =
-    "imageFull" in active
-      ? active.imageFull
-      : "heroImage" in active
-      ? active.heroImage
-      : null;
+  /* ---------- URLs de imagen ---------- */
+  const hero =
+    ("imageWatermarked" in active && active.imageWatermarked) ||
+    ("imageFull" in active && active.imageFull) ||
+    ("heroImage" in active && active.heroImage) ||
+    null;
+
+  const thumb = pickThumb(active) || intro.heroImage || null;
 
   return (
     <>
@@ -92,22 +80,19 @@ export default function AboutSection({
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
-            {/* Imagen cuando no hay slug (intro) */}
-            {!slug && thumbUrl && (
-              <div style={{ marginBottom: "2rem" }}>
+            {/* ► Thumb SOLO en la intro (sin slug) */}
+            {!slug && thumb && (
+              <div className="col-span-8 mb-8">
                 <img
-                  src={thumbUrl}
+                  src={thumb}
                   alt="Thumbnail"
-                  style={{
-                    width: "100%",
-                    maxWidth: "900px",
-                    objectFit: "cover",
-                  }}
+                  className="w-full max-w-[900px] object-cover rounded-md border border-gray-300"
+                  loading="lazy"
                 />
               </div>
             )}
 
-            {/* Dropdown mobile */}
+            {/* ► menú desplegable mobile */}
             {related.length > 0 && (
               <div className="col-span-8 md:hidden px-4 pt-4">
                 <details className="border border-gray-300 rounded-md bg-white">
@@ -117,12 +102,12 @@ export default function AboutSection({
                   <ul className="px-4 py-2 space-y-1">
                     {related.map((r) => (
                       <li key={r.slug}>
-                        <a
+                        <Link
                           href={`/about/${r.slug}`}
                           className="block text-sm hover:text-[var(--accent)]"
                         >
                           {r.title}
-                        </a>
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -130,11 +115,11 @@ export default function AboutSection({
               </div>
             )}
 
-            {/* Contenido principal */}
+            {/* ► main article */}
             <article className="col-start-1 md:col-start-3 col-span-8 md:col-span-7 text-black p-6 md:p-10 space-y-6">
-              {slug && image && (
+              {slug && hero && (
                 <img
-                  src={image}
+                  src={hero}
                   alt={active.title}
                   className="w-full rounded-md border border-gray-300 object-cover"
                 />
@@ -145,13 +130,13 @@ export default function AboutSection({
               )}
 
               <h1 className="text-3xl font-semibold">{active.title}</h1>
-
               {"subtitle" in active && active.subtitle && (
                 <p className="italic text-gray-500">{active.subtitle}</p>
               )}
 
+              {/* body */}
               {Array.isArray(active.body)
-                ? active.body.map((block: any, i: number) =>
+                ? active.body.map((block: any, i) =>
                     block.type === "paragraph" ? (
                       <p key={i}>
                         {block.children?.map((child: any, j: number) => (
@@ -161,13 +146,11 @@ export default function AboutSection({
                     ) : null
                   )
                 : typeof active.body === "string"
-                ? active.body
-                    .split("\n\n")
-                    .map((p: string, i: number) => <p key={i}>{p}</p>)
+                ? active.body.split("\n\n").map((p, i) => <p key={i}>{p}</p>)
                 : null}
             </article>
 
-            {/* Aside desktop */}
+            {/* ► aside desktop */}
             {related.length > 0 && (
               <aside className="hidden md:block col-start-10 col-span-2 md:pt-[42px]">
                 <h3
@@ -177,22 +160,26 @@ export default function AboutSection({
                   Explore&nbsp;more
                 </h3>
                 <ul className="space-y-4">
-                  {related.map((r) => (
-                    <li key={r.slug}>
-                      <Link href={`/about/${r.slug}`} className="group block">
-                        {"imageThumb" in r && r.imageThumb && (
-                          <img
-                            src={r.imageThumb}
-                            alt={r.title}
-                            className="w-full aspect-video object-cover rounded-md border border-gray-300 group-hover:border-[var(--accent)] transition"
-                          />
-                        )}
-                        <span className="mt-1 block text-xs leading-snug group-hover:text-[var(--accent)]">
-                          {r.title}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
+                  {related.map((r) => {
+                    const thumbR = pickThumb(r) || r.imageThumb || null;
+                    return (
+                      <li key={r.slug}>
+                        <Link href={`/about/${r.slug}`} className="group block">
+                          {thumbR && (
+                            <img
+                              src={thumbR}
+                              alt={r.title}
+                              className="w-full aspect-video object-cover rounded-md border border-gray-300 group-hover:border-[var(--accent)] transition"
+                              loading="lazy"
+                            />
+                          )}
+                          <span className="mt-1 block text-xs leading-snug group-hover:text-[var(--accent)]">
+                            {r.title}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               </aside>
             )}
