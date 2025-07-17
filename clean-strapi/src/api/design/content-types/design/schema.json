@@ -21,25 +21,27 @@
     "body": {
       "type": "blocks"
     },
-    "imageThumb": {
-      "type": "media",
-      "multiple": false,
-      "allowedTypes": [
-        "images",
-        "files",
-        "videos",
-        "audios"
-      ]
+    "thumbPos": {
+      "type": "enumeration",
+      "enum": ["top", "center", "bottom"],
+      "default": "center"
     },
     "imageFull": {
       "type": "media",
       "multiple": false,
-      "allowedTypes": [
-        "images",
-        "files",
-        "videos",
-        "audios"
-      ]
+      "allowedTypes": ["images"]
+    },
+    "imageWatermarked": {
+      "type": "string"
+    },
+    "imageThumbTop": {
+      "type": "string"
+    },
+    "imageThumbCenter": {
+      "type": "string"
+    },
+    "imageThumbBottom": {
+      "type": "string"
     }
   }
 }
