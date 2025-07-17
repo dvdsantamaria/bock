@@ -24,11 +24,6 @@
       "target": "api::photography-category.photography-category",
       "inversedBy": "photographies"
     },
-    "imageThumb": {
-      "type": "media",
-      "multiple": false,
-      "allowedTypes": ["images", "files", "videos", "audios"]
-    },
     "imageFull": {
       "type": "media",
       "multiple": false,
