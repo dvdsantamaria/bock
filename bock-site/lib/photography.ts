@@ -19,6 +19,10 @@ export interface PhotoItem {
   slug: string;
   imageThumb?: string | null;
   imageFull?: string | null;
+  thumbPos?: "top" | "center" | "bottom" | null;
+  imageThumbTop?: string | null;
+  imageThumbCenter?: string | null;
+  imageThumbBottom?: string | null;
 }
 
 export const getAllPhotographies = async (): Promise<PhotoItem[]> => {
@@ -42,6 +46,12 @@ export const getAllPhotographies = async (): Promise<PhotoItem[]> => {
         slug: attr.slug || `no-slug-${item.id}`,
         imageThumb: url(attr.imageThumb),
         imageFull: url(attr.imageFull),
+
+        // NUEVOS CAMPOS 👇
+        thumbPos: attr.thumbPos ?? null,
+        imageThumbTop: url(attr.imageThumbTop),
+        imageThumbCenter: url(attr.imageThumbCenter),
+        imageThumbBottom: url(attr.imageThumbBottom),
       };
     });
   } catch (error) {

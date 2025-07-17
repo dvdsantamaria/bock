@@ -1,5 +1,4 @@
-// components/PhotographyPage.tsx
-
+/* components/PhotographyPage.tsx */
 import { useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -25,6 +24,23 @@ type PhotographyPageProps = {
     intro: PhotoItem;
   };
 };
+
+/* Helper para elegir el thumb correcto */
+const getThumb = (p: PhotoItem) =>
+  p.thumbPos === "top"
+    ? p.imageThumbTop
+    : p.thumbPos === "bottom"
+    ? p.imageThumbBottom
+    : p.imageThumbCenter ?? null;
+
+/* Tipado mínimo para los bloques rich-text que renderizamos */
+interface RichTextChild {
+  text: string;
+}
+interface RichTextBlock {
+  type: string;
+  children?: RichTextChild[];
+}
 
 export default function PhotographyPage({ initialData }: PhotographyPageProps) {
   const { query, replace } = useRouter();
@@ -106,7 +122,7 @@ export default function PhotographyPage({ initialData }: PhotographyPageProps) {
                       className="block"
                     >
                       <img
-                        src={t.imageThumb || ""}
+                        src={getThumb(t) || ""}
                         alt={t.title}
                         className="w-full aspect-video object-cover rounded-md border border-gray-300 hover:border-[var(--accent)] transition"
                       />
