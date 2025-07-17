@@ -1,13 +1,7 @@
-// lib/about.ts
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-/** Convierte `undefined` en `null` para no romper el tipado / render */
 const normalize = <T = any>(v: T | undefined): T | null =>
   v === undefined ? null : v;
-
-/* ------------------------------------------------------------------ */
-/*  Tipos                                                             */
-/* ------------------------------------------------------------------ */
 
 export interface Article {
   id: number;
@@ -15,19 +9,11 @@ export interface Article {
   subtitle?: string | null;
   body: any;
   slug: string;
-
-  /** nuevo: posición elegida para el thumb */
   thumbPos?: "top" | "center" | "bottom" | null;
-
-  /** nuevo: imagen grande con marca de agua */
   imageWatermarked?: string | null;
-
-  /** thumbs generados en Cloudinary */
   imageThumbTop?: string | null;
   imageThumbCenter?: string | null;
   imageThumbBottom?: string | null;
-
-  /** compatibilidad con contenido viejo                     */
   imageThumb?: string | null;
   imageFull?: string | null;
 }
@@ -39,20 +25,18 @@ export interface Intro {
   heroImage?: string | null;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Helpers de fetch                                                  */
-/* ------------------------------------------------------------------ */
-
 export const getAboutIntro = async (): Promise<Intro> => {
   try {
     const res = await fetch(`${API}/api/about-intro?populate=*`);
-    const { data } = await res.json();
-    const attr = data.attributes;
+    const json = await res.json();
+    const attr = json?.data?.attributes;
+
+    if (!attr) throw new Error("Missing attributes in about-intro");
 
     return {
-      title: attr.title,
+      title: attr.title || "About",
       subtitle: normalize(attr.subtitle),
-      body: attr.content,
+      body: attr.content || [],
       heroImage: attr.heroImage?.url ? `${API}${attr.heroImage.url}` : null,
     };
   } catch (err) {
@@ -66,26 +50,22 @@ export const getAboutArticles = async (): Promise<Article[]> => {
     const res = await fetch(
       `${API}/api/abouts?populate=*&pagination[pageSize]=100`
     );
-    const { data } = await res.json();
+    const json = await res.json();
+    const articles = Array.isArray(json.data) ? json.data : [];
 
-    return data.map((item: any): Article => {
-      const attr = item.attributes;
-
+    return articles.map((item: any): Article => {
+      const attr = item?.attributes || {};
       return {
         id: item.id,
-        title: attr.title,
+        title: attr.title || "Untitled",
         subtitle: normalize(attr.subtitle),
-        body: Array.isArray(attr.body) ? attr.body : attr.content,
-        slug: attr.slug,
-
-        /* ---------- nuevos campos ---------- */
+        body: Array.isArray(attr.body) ? attr.body : attr.content || [],
+        slug: attr.slug || `no-slug-${item.id}`,
         thumbPos: attr.thumbPos ?? null,
         imageWatermarked: attr.imageWatermarked ?? null,
         imageThumbTop: attr.imageThumbTop ?? null,
         imageThumbCenter: attr.imageThumbCenter ?? null,
         imageThumbBottom: attr.imageThumbBottom ?? null,
-
-        /* ---------- fallback legacy -------- */
         imageThumb: attr.imageThumb?.url
           ? `${API}${attr.imageThumb.url}`
           : null,
