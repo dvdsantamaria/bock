@@ -31,7 +31,6 @@ const uploadToCloudinary = async (filePath: string, publicId: string) => {
 
 export default {
   async afterCreate(event) {
-    debugger;
     try {
       const { result } = event;
       const imageUrl = result.imageFull?.url;
@@ -47,32 +46,21 @@ export default {
         ? result.thumbPos
         : "center";
 
-      // Extrae la ruta de transformación base desde la URL original
-      const match = imageUrl.match(/upload\/(v\d+\/[^.]+\.jpg)/);
-      if (!match || match.length < 2) {
-        console.error("❌ Could not extract baseTransform from URL:", imageUrl);
-        return;
-      }
-      const baseTransform = match[1];
-
-      // Extrae publicId (sin versión ni extensión)
-      const publicIdMatch = imageUrl.match(/upload\/v\d+\/([^\.]+)/);
+      // Extraer publicId del nombre del archivo (sin extensión)
+      const publicIdMatch = imageUrl.match(/\/v\d+\/([^\.\/]+)/);
       if (!publicIdMatch || publicIdMatch.length < 2) {
         console.error("❌ Could not extract publicId from URL:", imageUrl);
         return;
       }
       const publicId = publicIdMatch[1];
 
-      console.log("🔧 baseTransform:", baseTransform);
       console.log("🔧 publicId:", publicId);
       console.log("🔧 thumbPos:", thumbPos);
 
-      // Armar URLs transformadas en Cloudinary
-      const thumbTransform = `c_fill,ar_3:2,g_${thumbPos},w_300/${baseTransform}`;
-      const watermarkTransform = `l_Artboard_1_2x_g8mel6,o_50,g_south_east,x_10,y_10/${baseTransform}`;
-
-      const thumbUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_NAME}/image/upload/${thumbTransform}`;
-      const watermarkUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_NAME}/image/upload/${watermarkTransform}`;
+      // URLs con named transformations
+      const cloudName = process.env.CLOUDINARY_NAME;
+      const thumbUrl = `https://res.cloudinary.com/${cloudName}/image/upload/t_thumb_${thumbPos}/${publicId}.jpg`;
+      const watermarkUrl = `https://res.cloudinary.com/${cloudName}/image/upload/t_public/${publicId}.jpg`;
 
       console.log("🌐 Downloading thumb URL:", thumbUrl);
       console.log("🌐 Downloading watermark URL:", watermarkUrl);
