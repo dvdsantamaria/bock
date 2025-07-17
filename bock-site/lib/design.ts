@@ -30,17 +30,22 @@ export const getDesignArticles = async (): Promise<Design[]> => {
     );
     const json = await res.json();
 
-    return json.data.map((item: any) => ({
-      id: item.id,
-      title: item.attributes.title,
-      slug: item.attributes.slug,
-      body: Array.isArray(item.attributes.body) ? item.attributes.body : [],
-      thumbPos: normalize(item.attributes.thumbPos),
-      imageWatermarked: normalize(item.attributes.imageWatermarked),
-      imageThumbTop: normalize(item.attributes.imageThumbTop),
-      imageThumbCenter: normalize(item.attributes.imageThumbCenter),
-      imageThumbBottom: normalize(item.attributes.imageThumbBottom),
-    }));
+    const articles = Array.isArray(json.data) ? json.data : [];
+
+    return articles.map((item: any) => {
+      const attrs = item?.attributes || {};
+      return {
+        id: item.id,
+        title: attrs.title || "Untitled",
+        slug: attrs.slug || `no-slug-${item.id}`,
+        body: Array.isArray(attrs.body) ? attrs.body : [],
+        thumbPos: normalize(attrs.thumbPos),
+        imageWatermarked: normalize(attrs.imageWatermarked),
+        imageThumbTop: normalize(attrs.imageThumbTop),
+        imageThumbCenter: normalize(attrs.imageThumbCenter),
+        imageThumbBottom: normalize(attrs.imageThumbBottom),
+      };
+    });
   } catch (error) {
     console.error("Error fetching design articles:", error);
     return [];
@@ -55,15 +60,17 @@ export const getDesignSlugs = async (): Promise<string[]> => {
 export const getDesignIntro = async (): Promise<Intro> => {
   try {
     const res = await fetch(`${API}/api/design-intro?populate=*`);
-    const { data } = await res.json();
+    const json = await res.json();
+    const data = json?.data;
+    const attrs = data?.attributes;
+
+    if (!attrs) throw new Error("No attributes in design-intro");
 
     return {
-      title: data.attributes.title,
-      subtitle: normalize(data.attributes.subtitle),
-      body: data.attributes.content,
-      heroImage: data.attributes.heroImage?.url
-        ? `${API}${data.attributes.heroImage.url}`
-        : null,
+      title: attrs.title || "Design",
+      subtitle: normalize(attrs.subtitle),
+      body: attrs.content,
+      heroImage: attrs.heroImage?.url ? `${API}${attrs.heroImage.url}` : null,
     };
   } catch (err) {
     console.error("Error fetching design intro:", err);
