@@ -154,7 +154,7 @@ export async function getStaticProps() {
 function SectionHeading({ title }: { title: string }) {
   return (
     <h2
-      className="col-span-8 md:col-span-2 md:col-start-1 pt-8 italic text-2xl md:text-3xl"
+      className="col-span-8 md:col-span-2 md:col-start-1 py-4 italic text-2xl md:text-3xl"
       style={{
         fontFamily: `"Palatino Linotype","Book Antiqua",Palatino,serif`,
       }}
