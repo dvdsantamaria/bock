@@ -47,12 +47,13 @@ export const getAboutIntro = async (): Promise<Intro> => {
   try {
     const res = await fetch(`${API}/api/about-intro?populate=*`);
     const { data } = await res.json();
+    const attr = data.attributes;
 
     return {
-      title: data.title,
-      subtitle: normalize(data.subtitle),
-      body: data.content,
-      heroImage: data.heroImage?.url ? `${API}${data.heroImage.url}` : null,
+      title: attr.title,
+      subtitle: normalize(attr.subtitle),
+      body: attr.content,
+      heroImage: attr.heroImage?.url ? `${API}${attr.heroImage.url}` : null,
     };
   } catch (err) {
     console.error("Error fetching about intro:", err);
@@ -67,28 +68,30 @@ export const getAboutArticles = async (): Promise<Article[]> => {
     );
     const { data } = await res.json();
 
-    return data.map(
-      (item: any): Article => ({
+    return data.map((item: any): Article => {
+      const attr = item.attributes;
+
+      return {
         id: item.id,
-        title: item.title,
-        subtitle: normalize(item.subtitle),
-        body: item.body || item.content,
-        slug: item.slug,
+        title: attr.title,
+        subtitle: normalize(attr.subtitle),
+        body: Array.isArray(attr.body) ? attr.body : attr.content,
+        slug: attr.slug,
 
         /* ---------- nuevos campos ---------- */
-        thumbPos: item.thumbPos ?? null,
-        imageWatermarked: item.imageWatermarked ?? null,
-        imageThumbTop: item.imageThumbTop ?? null,
-        imageThumbCenter: item.imageThumbCenter ?? null,
-        imageThumbBottom: item.imageThumbBottom ?? null,
+        thumbPos: attr.thumbPos ?? null,
+        imageWatermarked: attr.imageWatermarked ?? null,
+        imageThumbTop: attr.imageThumbTop ?? null,
+        imageThumbCenter: attr.imageThumbCenter ?? null,
+        imageThumbBottom: attr.imageThumbBottom ?? null,
 
         /* ---------- fallback legacy -------- */
-        imageThumb: item.imageThumb?.url
-          ? `${API}${item.imageThumb.url}`
+        imageThumb: attr.imageThumb?.url
+          ? `${API}${attr.imageThumb.url}`
           : null,
-        imageFull: item.imageFull?.url ? `${API}${item.imageFull.url}` : null,
-      })
-    );
+        imageFull: attr.imageFull?.url ? `${API}${attr.imageFull.url}` : null,
+      };
+    });
   } catch (err) {
     console.error("Error fetching about articles:", err);
     return [];

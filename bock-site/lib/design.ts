@@ -25,14 +25,14 @@ export const getDesignArticles = async (): Promise<Design[]> => {
 
     return json.data.map((item: any) => ({
       id: item.id,
-      title: item.title,
-      slug: item.slug,
-      body: item.body || item.content,
-      thumbPos: normalize(item.thumbPos),
-      imageWatermarked: normalize(item.imageWatermarked),
-      imageThumbTop: normalize(item.imageThumbTop),
-      imageThumbCenter: normalize(item.imageThumbCenter),
-      imageThumbBottom: normalize(item.imageThumbBottom),
+      title: item.attributes.title,
+      slug: item.attributes.slug,
+      body: Array.isArray(item.attributes.body) ? item.attributes.body : [],
+      thumbPos: normalize(item.attributes.thumbPos),
+      imageWatermarked: normalize(item.attributes.imageWatermarked),
+      imageThumbTop: normalize(item.attributes.imageThumbTop),
+      imageThumbCenter: normalize(item.attributes.imageThumbCenter),
+      imageThumbBottom: normalize(item.attributes.imageThumbBottom),
     }));
   } catch (error) {
     console.error("Error fetching design articles:", error);
