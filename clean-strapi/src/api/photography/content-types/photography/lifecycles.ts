@@ -1,5 +1,3 @@
-// ./src/api/photography/content-types/photography/lifecycles.ts
-
 import { processEntryImage } from "../../../../utils/cloudinaryProcessor";
 
 export default {
