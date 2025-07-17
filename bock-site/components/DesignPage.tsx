@@ -1,4 +1,5 @@
 // components/DesignPage.tsx
+
 import React, { useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -22,18 +23,26 @@ type Props = {
   initialSlug?: string;
 };
 
+type RichTextChild = {
+  text: string;
+};
+
+type RichTextBlock = {
+  type: string;
+  children?: RichTextChild[];
+};
+
 export default function DesignPage({ initialData, initialSlug }: Props) {
   const { query } = useRouter();
   const routerSlug = query.slug as string | undefined;
-
   const slug = initialSlug ?? routerSlug;
+
   const active = slug
     ? initialData.find((a) => a.slug === slug)
     : initialData[0];
 
   const related = initialData.filter((a) => a.slug !== active?.slug);
 
-  // Obtener thumb correcto según thumbPos
   const imageThumb =
     active?.thumbPos === "top"
       ? active.imageThumbTop
@@ -78,10 +87,10 @@ export default function DesignPage({ initialData, initialSlug }: Props) {
               <hr className="border-t-4 border-[var(--accent)] my-6 w-1/2" />
               <h1 className="text-3xl font-semibold">{active?.title}</h1>
 
-              {active?.body?.map((block: any, i: number) =>
+              {active?.body?.map((block: RichTextBlock, i: number) =>
                 block.type === "paragraph" ? (
                   <p key={i}>
-                    {block.children?.map((child: any, j: number) => (
+                    {block.children?.map((child: RichTextChild, j: number) => (
                       <span key={j}>{child.text}</span>
                     ))}
                   </p>
@@ -89,7 +98,6 @@ export default function DesignPage({ initialData, initialSlug }: Props) {
               )}
             </article>
 
-            {/* Aside solo desktop */}
             {related.length > 0 && (
               <aside className="hidden md:block col-start-10 col-span-2 md:pt-[42px]">
                 <h3
@@ -106,6 +114,7 @@ export default function DesignPage({ initialData, initialSlug }: Props) {
                         : r.thumbPos === "bottom"
                         ? r.imageThumbBottom
                         : r.imageThumbCenter;
+
                     return (
                       <li key={r.slug}>
                         <Link

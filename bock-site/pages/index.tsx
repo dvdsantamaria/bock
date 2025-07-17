@@ -1,4 +1,5 @@
-/* pages/index.tsx — Home */
+// pages/index.tsx — Home
+
 import { useEffect, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -24,19 +25,9 @@ const sampleN = <T,>(arr: T[], n: number) =>
 
 type Thumb = { src: string; href: string; alt: string };
 
-// Función mejorada para normalizar rutas de imágenes
-const normalizeImagePath = (path: string) => {
-  // Si la ruta ya es una URL completa, devolverla tal cual
-  if (/^https?:\/\//i.test(path)) {
-    return path;
-  }
-
-  // Eliminar barras iniciales múltiples y espacios
-  const cleaned = path.replace(/^\/+/, "").trim();
-
-  // Asegurar que comience con una sola barra
-  return `/${cleaned}`;
-};
+// Normaliza rutas para imágenes
+const normalizeImagePath = (path?: string | null): string =>
+  path?.startsWith("http") ? path : path ? `/${path.replace(/^\/+/, "")}` : "";
 
 interface HomeProps {
   writingData: any[];
@@ -51,13 +42,11 @@ export default function Home({
   designData,
   aboutData,
 }: HomeProps) {
-  /* -------- links escritura -------- */
   const writingLinks = writingData.slice(0, 18).map((a) => ({
     label: a.title,
     href: `/writing/${a.category}/${a.slug}`,
   }));
 
-  /* -------- thumbs aleatorios (cliente) -------- */
   const [photoThumbs, setPhotoThumbs] = useState<Thumb[]>([]);
   const [designThumbs, setDesignThumbs] = useState<Thumb[]>([]);
   const [pubThumbs, setPubThumbs] = useState<Thumb[]>([]);
@@ -72,11 +61,25 @@ export default function Home({
     );
 
     setDesignThumbs(
-      sampleN(designData, 3).map((d) => ({
-        src: normalizeImagePath(d.imageThumb),
-        href: `/design/${d.slug}`,
-        alt: d.title,
-      }))
+      sampleN(designData, 3).map((d) => {
+        let thumb;
+        switch (d.thumbPos) {
+          case "top":
+            thumb = d.imageThumbTop;
+            break;
+          case "bottom":
+            thumb = d.imageThumbBottom;
+            break;
+          default:
+            thumb = d.imageThumbCenter;
+        }
+
+        return {
+          src: normalizeImagePath(thumb),
+          href: `/design/${d.slug}`,
+          alt: d.title,
+        };
+      })
     );
 
     setPubThumbs(
@@ -94,12 +97,9 @@ export default function Home({
         <title>Andrew Bock – Home</title>
       </Head>
 
-      {/* NO sub-menú: section y subMenuItems vacíos */}
       <MainLayout section="" subMenuItems={[]} theme={{}}>
-        {/* ── strokes superiores ─────────────────────── */}
         <TopStrokes />
 
-        {/* ── contenido ─────────────────────────────── */}
         <div className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4">
           {/* WRITING */}
           <SectionHeading title="Writing" />
@@ -133,7 +133,6 @@ export default function Home({
 }
 
 export async function getStaticProps() {
-  // Obtener datos de las APIs
   const writingData = await getWritingArticles();
   const photoData = await getAllPhotographies();
   const designData = await getDesignArticles();

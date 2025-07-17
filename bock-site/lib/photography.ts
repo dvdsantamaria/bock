@@ -1,11 +1,14 @@
 // lib/photography.ts
+
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-// Función para normalizar valores undefined → null
-const normalize = (value: any) => (value === undefined ? null : value);
+// Normaliza undefined a null
+const normalize = <T = any>(v: T | undefined): T | null =>
+  v === undefined ? null : v;
 
 // Prefija la URL si empieza con "/"
-const url = (p?: string) => (p && p.startsWith("/") ? `${API}${p}` : p ?? null);
+const url = (v?: { url?: string }) =>
+  v?.url && v.url.startsWith("/") ? `${API}${v.url}` : null;
 
 export interface PhotoItem {
   id: number;
@@ -25,16 +28,22 @@ export const getAllPhotographies = async (): Promise<PhotoItem[]> => {
     );
     const json = await res.json();
 
-    return (json.data as any[]).map((p) => ({
-      id: p.id,
-      title: p.title,
-      subtitle: normalize(p.subtitle),
-      body: normalize(p.body),
-      category: p.Category?.slug || "uncategorised",
-      slug: p.slug,
-      imageThumb: url(p.imageThumb?.url),
-      imageFull: url(p.imageFull?.url),
-    }));
+    const list = Array.isArray(json.data) ? json.data : [];
+
+    return list.map((item: any): PhotoItem => {
+      const attr = item.attributes ?? {};
+
+      return {
+        id: item.id,
+        title: attr.title || "Untitled",
+        subtitle: normalize(attr.subtitle),
+        body: normalize(attr.body),
+        category: attr.Category?.data?.attributes?.slug || "uncategorised",
+        slug: attr.slug || `no-slug-${item.id}`,
+        imageThumb: url(attr.imageThumb),
+        imageFull: url(attr.imageFull),
+      };
+    });
   } catch (error) {
     console.error("Error fetching photographs:", error);
     return [];
@@ -50,11 +59,9 @@ export const getRandomPhotoForCategory = async (
   category: string
 ): Promise<PhotoItem | null> => {
   const photos = await getAllPhotographies();
-  const categoryPhotos = photos.filter((p) => p.category === category);
-
-  if (categoryPhotos.length === 0) return null;
-
-  return categoryPhotos[Math.floor(Math.random() * categoryPhotos.length)];
+  const filtered = photos.filter((p) => p.category === category);
+  if (!filtered.length) return null;
+  return filtered[Math.floor(Math.random() * filtered.length)];
 };
 
 export const getPhotoBySlug = async (
