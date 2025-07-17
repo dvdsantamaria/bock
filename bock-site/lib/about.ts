@@ -1,3 +1,5 @@
+// lib/about.ts
+
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
 const normalize = <T = any>(v: T | undefined): T | null =>
@@ -29,9 +31,7 @@ export const getAboutIntro = async (): Promise<Intro> => {
   try {
     const res = await fetch(`${API}/api/about-intro?populate=*`);
     const json = await res.json();
-    const attr = json?.data?.attributes;
-
-    if (!attr) throw new Error("Missing attributes in about-intro");
+    const attr = json?.data?.attributes ?? json?.data ?? {};
 
     return {
       title: attr.title || "About",
@@ -51,15 +51,16 @@ export const getAboutArticles = async (): Promise<Article[]> => {
       `${API}/api/abouts?populate=*&pagination[pageSize]=100`
     );
     const json = await res.json();
-    const articles = Array.isArray(json.data) ? json.data : [];
+    const list = Array.isArray(json.data) ? json.data : [];
 
-    return articles.map((item: any): Article => {
-      const attr = item?.attributes || {};
+    return list.map((item: any): Article => {
+      const attr = item?.attributes ?? item ?? {};
+
       return {
         id: item.id,
         title: attr.title || "Untitled",
         subtitle: normalize(attr.subtitle),
-        body: Array.isArray(attr.body) ? attr.body : attr.content || [],
+        body: Array.isArray(attr.body) ? attr.body : attr.content ?? [],
         slug: attr.slug || `no-slug-${item.id}`,
         thumbPos: attr.thumbPos ?? null,
         imageWatermarked: attr.imageWatermarked ?? null,

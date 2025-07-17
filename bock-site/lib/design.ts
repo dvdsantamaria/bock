@@ -1,3 +1,5 @@
+// lib/design.ts
+
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
 const normalize = <T = any>(v: T | undefined): T | null =>
@@ -28,15 +30,16 @@ export const getDesignArticles = async (): Promise<Design[]> => {
       `${API}/api/designs?populate=*&sort[0]=createdAt:desc&pagination[pageSize]=100`
     );
     const json = await res.json();
-    const articles = Array.isArray(json.data) ? json.data : [];
+    const list = Array.isArray(json.data) ? json.data : [];
 
-    return articles.map((item: any): Design => {
-      const attr = item?.attributes || {};
+    return list.map((item: any): Design => {
+      const attr = item?.attributes ?? item ?? {};
+
       return {
         id: item.id,
         title: attr.title || "Untitled",
         slug: attr.slug || `no-slug-${item.id}`,
-        body: Array.isArray(attr.body) ? attr.body : attr.content || [],
+        body: Array.isArray(attr.body) ? attr.body : attr.content ?? [],
         thumbPos: attr.thumbPos ?? null,
         imageWatermarked: attr.imageWatermarked ?? null,
         imageThumbTop: attr.imageThumbTop ?? null,
@@ -59,9 +62,7 @@ export const getDesignIntro = async (): Promise<Intro> => {
   try {
     const res = await fetch(`${API}/api/design-intro?populate=*`);
     const json = await res.json();
-    const attr = json?.data?.attributes;
-
-    if (!attr) throw new Error("Missing attributes in design-intro");
+    const attr = json?.data?.attributes ?? json?.data ?? {};
 
     return {
       title: attr.title || "Design",
