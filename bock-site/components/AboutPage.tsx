@@ -6,10 +6,10 @@ import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Article, Intro } from "@/lib/about";
+import { Article, Intro as BaseIntro } from "@/lib/about";
 
 /* ---------- tema local ---------- */
-const theme = {
+const theme: Record<string, string> = {
   background: "#A7A9AC",
   accent: "#EDBE1C",
   menuText: "#000000",
@@ -17,6 +17,14 @@ const theme = {
   logoText: "#000000",
   sectionColor: "#000000",
 };
+
+// Extendemos el tipo Intro para incluir los campos nuevos
+interface Intro extends BaseIntro {
+  thumbPos?: "top" | "center" | "bottom";
+  imageThumbTop?: string | null;
+  imageThumbCenter?: string | null;
+  imageThumbBottom?: string | null;
+}
 
 type AboutSectionProps = {
   initialData: {
@@ -35,6 +43,14 @@ export default function AboutSection({
 
   const slug = initialSlug ?? routerSlug;
   const { intro, articles } = initialData;
+
+  const thumbMap: Record<"top" | "center" | "bottom", string | undefined> = {
+    top: intro.imageThumbTop || undefined,
+    center: intro.imageThumbCenter || undefined,
+    bottom: intro.imageThumbBottom || undefined,
+  };
+
+  const thumbUrl = intro.thumbPos ? thumbMap[intro.thumbPos] : undefined;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -76,7 +92,22 @@ export default function AboutSection({
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
-            {/* Mobile dropdown */}
+            {/* Imagen cuando no hay slug (intro) */}
+            {!slug && thumbUrl && (
+              <div style={{ marginBottom: "2rem" }}>
+                <img
+                  src={thumbUrl}
+                  alt="Thumbnail"
+                  style={{
+                    width: "100%",
+                    maxWidth: "900px",
+                    objectFit: "cover",
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Dropdown mobile */}
             {related.length > 0 && (
               <div className="col-span-8 md:hidden px-4 pt-4">
                 <details className="border border-gray-300 rounded-md bg-white">
@@ -99,7 +130,7 @@ export default function AboutSection({
               </div>
             )}
 
-            {/* Artículo principal */}
+            {/* Contenido principal */}
             <article className="col-start-1 md:col-start-3 col-span-8 md:col-span-7 text-black p-6 md:p-10 space-y-6">
               {slug && image && (
                 <img
@@ -115,7 +146,7 @@ export default function AboutSection({
 
               <h1 className="text-3xl font-semibold">{active.title}</h1>
 
-              {active.subtitle && (
+              {"subtitle" in active && active.subtitle && (
                 <p className="italic text-gray-500">{active.subtitle}</p>
               )}
 
@@ -149,7 +180,7 @@ export default function AboutSection({
                   {related.map((r) => (
                     <li key={r.slug}>
                       <Link href={`/about/${r.slug}`} className="group block">
-                        {r.imageThumb && (
+                        {"imageThumb" in r && r.imageThumb && (
                           <img
                             src={r.imageThumb}
                             alt={r.title}

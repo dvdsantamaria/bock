@@ -19,6 +19,12 @@ export interface Intro {
   subtitle?: string | null;
   body: any;
   heroImage?: string | null;
+
+  // Nuevos campos relacionados al thumbnail principal
+  thumbPos?: "top" | "center" | "bottom";
+  imageThumbTop?: string | null;
+  imageThumbCenter?: string | null;
+  imageThumbBottom?: string | null;
 }
 
 export const getAboutIntro = async (): Promise<Intro> => {
@@ -32,6 +38,12 @@ export const getAboutIntro = async (): Promise<Intro> => {
       subtitle: normalize(data.subtitle),
       body: data.content,
       heroImage: data.heroImage?.url ? `${API}${data.heroImage.url}` : null,
+
+      // Agregados
+      thumbPos: data.thumbPos ?? "center",
+      imageThumbTop: data.imageThumbTop ?? null,
+      imageThumbCenter: data.imageThumbCenter ?? null,
+      imageThumbBottom: data.imageThumbBottom ?? null,
     };
   } catch (error) {
     console.error("Error fetching about intro:", error);
@@ -40,6 +52,10 @@ export const getAboutIntro = async (): Promise<Intro> => {
       subtitle: null,
       body: null,
       heroImage: null,
+      thumbPos: "center",
+      imageThumbTop: null,
+      imageThumbCenter: null,
+      imageThumbBottom: null,
     };
   }
 };
