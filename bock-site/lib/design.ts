@@ -16,6 +16,13 @@ export interface Design {
   imageThumbBottom?: string | null;
 }
 
+export interface Intro {
+  title: string;
+  subtitle?: string | null;
+  body: any;
+  heroImage?: string | null;
+}
+
 export const getDesignArticles = async (): Promise<Design[]> => {
   try {
     const res = await fetch(
@@ -43,4 +50,23 @@ export const getDesignArticles = async (): Promise<Design[]> => {
 export const getDesignSlugs = async (): Promise<string[]> => {
   const articles = await getDesignArticles();
   return articles.map((article) => article.slug);
+};
+
+export const getDesignIntro = async (): Promise<Intro> => {
+  try {
+    const res = await fetch(`${API}/api/design-intro?populate=*`);
+    const { data } = await res.json();
+
+    return {
+      title: data.attributes.title,
+      subtitle: normalize(data.attributes.subtitle),
+      body: data.attributes.content,
+      heroImage: data.attributes.heroImage?.url
+        ? `${API}${data.attributes.heroImage.url}`
+        : null,
+    };
+  } catch (err) {
+    console.error("Error fetching design intro:", err);
+    return { title: "Design", subtitle: null, body: null, heroImage: null };
+  }
 };
