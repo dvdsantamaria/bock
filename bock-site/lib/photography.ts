@@ -10,6 +10,10 @@ const normalize = <T = any>(v: T | undefined): T | null =>
 const abs = (v?: { url?: string }) =>
   v?.url && v.url.startsWith("/") ? `${API}${v.url}` : null;
 
+// Helper para campos de imagen anidados (vía .data.attributes)
+const imageUrl = (entry?: { data?: { attributes?: { url?: string } } }) =>
+  abs(entry?.data?.attributes);
+
 /* -------------------------- Tipos principales -------------------------- */
 
 export interface PhotoItem {
@@ -30,7 +34,6 @@ export interface PhotoItem {
 /* ------------------------- Intro global (fake) ------------------------- */
 
 export const getPhotographyIntro = async (): Promise<PhotoItem> => {
-  // Si más adelante querés que esto venga desde otro endpoint, se reemplaza
   return {
     id: 0,
     title: "Photography",
@@ -52,27 +55,28 @@ export const getPhotographyIntro = async (): Promise<PhotoItem> => {
 export const getPhotographyPhotos = async (): Promise<PhotoItem[]> => {
   try {
     const res = await fetch(
-      `${API}/api/photographies?populate=*&pagination[pageSize]=200`
+      `${API}/api/photographies?populate=deep&pagination[pageSize]=200`
     );
     const json = await res.json();
 
     const list = Array.isArray(json.data) ? json.data : [];
 
     return list.map((item: any): PhotoItem => {
-      // No hay item.attributes en tu API, accedemos directo a item
+      const attr = item.attributes || item; // fallback si ya vienen planos
+
       return {
         id: item.id,
-        title: item.title || "Untitled",
-        subtitle: normalize(item.subtitle),
-        body: normalize(item.body),
-        category: item.Category?.slug || "uncategorised",
-        slug: item.slug || `no-slug-${item.id}`,
-        imageThumb: abs(item.imageThumb),
-        imageFull: abs(item.imageFull),
-        thumbPos: item.thumbPos ?? null,
-        imageThumbTop: abs(item.imageThumbTop),
-        imageThumbCenter: abs(item.imageThumbCenter),
-        imageThumbBottom: abs(item.imageThumbBottom),
+        title: attr.title || "Untitled",
+        subtitle: normalize(attr.subtitle),
+        body: normalize(attr.body),
+        category: attr.Category?.slug || "uncategorised",
+        slug: attr.slug || `no-slug-${item.id}`,
+        imageThumb: imageUrl(attr.imageThumb),
+        imageFull: imageUrl(attr.imageFull),
+        thumbPos: attr.thumbPos ?? null,
+        imageThumbTop: imageUrl(attr.imageThumbTop),
+        imageThumbCenter: imageUrl(attr.imageThumbCenter),
+        imageThumbBottom: imageUrl(attr.imageThumbBottom),
       };
     });
   } catch (error) {
