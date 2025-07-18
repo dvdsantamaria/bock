@@ -1,32 +1,44 @@
-// pages/design/index.tsx
-
+/* pages/design/index.tsx */
 import dynamic from "next/dynamic";
-import { getDesignArticles } from "@/lib/design";
+import { getDesignIntro, getDesignArticles } from "@/lib/design";
 
 export async function getStaticProps() {
   try {
-    const articles = await getDesignArticles();
+    const intro = await getDesignIntro(); // Trae /api/design-intro
+    const articles = await getDesignArticles(); // Trae /api/designs
 
     return {
       props: {
-        initialData: articles,
+        initialData: {
+          intro,
+          articles,
+        },
       },
       revalidate: 60,
     };
   } catch (error) {
+    console.error("Error in getStaticProps for /design:", error);
     return {
       props: {
-        initialData: [],
+        initialData: {
+          intro: {
+            title: "Design",
+            subtitle: null,
+            body: null,
+            heroImage: null,
+          },
+          articles: [],
+        },
       },
       revalidate: 10,
     };
   }
 }
 
-const DesignSection = dynamic(() => import("@/components/DesignPage"), {
+const DesignPage = dynamic(() => import("@/components/DesignPage"), {
   ssr: false,
 });
 
 export default function DesignIndex({ initialData }: any) {
-  return <DesignSection initialData={initialData} />;
+  return <DesignPage initialData={initialData} />;
 }
