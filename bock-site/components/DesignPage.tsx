@@ -75,7 +75,7 @@ export default function DesignSection({
         <title>{active?.title || "Design"}</title>
       </Head>
 
-      <MainLayout section="design" subMenuItems={subMenuItems} theme={theme}>
+      <MainLayout section="about" subMenuItems={["", "", ""]} theme={theme}>
         <AnimatePresence mode="wait">
           <motion.div
             key={slug ?? "design-intro"}
