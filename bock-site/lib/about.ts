@@ -96,5 +96,3 @@ export const getDesignSlugs = async (): Promise<string[]> => {
   const articles = await getDesignArticles();
   return articles.map((a) => a.slug);
 };
-
-export { getAboutArticles };
