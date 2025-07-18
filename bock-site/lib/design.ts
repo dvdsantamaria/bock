@@ -5,6 +5,11 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 const normalize = <T = any>(v: T | undefined): T | null =>
   v === undefined ? null : v;
 
+const toURL = (v?: { url?: string }): string | null => {
+  if (!v?.url) return null;
+  return v.url.startsWith("http") ? v.url : `${API}${v.url}`;
+};
+
 export interface Design {
   id: number;
   title: string;
@@ -37,7 +42,7 @@ export const getDesignIntro = async (): Promise<Intro> => {
       title: attr.title || "Design",
       subtitle: normalize(attr.subtitle),
       body: attr.content || [],
-      heroImage: attr.heroImage?.url ? `${API}${attr.heroImage.url}` : null,
+      heroImage: toURL(attr.heroImage),
     };
   } catch (err) {
     console.error("Error fetching design intro:", err);
@@ -64,22 +69,12 @@ export const getDesignArticles = async (): Promise<Design[]> => {
         body: Array.isArray(attr.body) ? attr.body : attr.content ?? [],
         slug: attr.slug || `no-slug-${item.id}`,
         thumbPos: attr.thumbPos ?? null,
-        imageWatermarked: attr.imageWatermarked?.url
-          ? `${API}${attr.imageWatermarked.url}`
-          : null,
-        imageThumbTop: attr.imageThumbTop?.url
-          ? `${API}${attr.imageThumbTop.url}`
-          : null,
-        imageThumbCenter: attr.imageThumbCenter?.url
-          ? `${API}${attr.imageThumbCenter.url}`
-          : null,
-        imageThumbBottom: attr.imageThumbBottom?.url
-          ? `${API}${attr.imageThumbBottom.url}`
-          : null,
-        imageThumb: attr.imageThumb?.url
-          ? `${API}${attr.imageThumb.url}`
-          : null,
-        imageFull: attr.imageFull?.url ? `${API}${attr.imageFull.url}` : null,
+        imageWatermarked: toURL(attr.imageWatermarked),
+        imageThumbTop: toURL(attr.imageThumbTop),
+        imageThumbCenter: toURL(attr.imageThumbCenter),
+        imageThumbBottom: toURL(attr.imageThumbBottom),
+        imageThumb: toURL(attr.imageThumb),
+        imageFull: toURL(attr.imageFull),
       };
     });
   } catch (err) {
