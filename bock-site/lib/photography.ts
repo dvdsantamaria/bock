@@ -59,21 +59,20 @@ export const getPhotographyPhotos = async (): Promise<PhotoItem[]> => {
     const list = Array.isArray(json.data) ? json.data : [];
 
     return list.map((item: any): PhotoItem => {
-      const attr = item.attributes ?? {};
-
+      // No hay item.attributes en tu API, accedemos directo a item
       return {
         id: item.id,
-        title: attr.title || "Untitled",
-        subtitle: normalize(attr.subtitle),
-        body: normalize(attr.body),
-        category: attr.Category?.data?.attributes?.slug || "uncategorised",
-        slug: attr.slug || `no-slug-${item.id}`,
-        imageThumb: abs(attr.imageThumb),
-        imageFull: abs(attr.imageFull),
-        thumbPos: attr.thumbPos ?? null,
-        imageThumbTop: abs(attr.imageThumbTop),
-        imageThumbCenter: abs(attr.imageThumbCenter),
-        imageThumbBottom: abs(attr.imageThumbBottom),
+        title: item.title || "Untitled",
+        subtitle: normalize(item.subtitle),
+        body: normalize(item.body),
+        category: item.Category?.slug || "uncategorised",
+        slug: item.slug || `no-slug-${item.id}`,
+        imageThumb: abs(item.imageThumb),
+        imageFull: abs(item.imageFull),
+        thumbPos: item.thumbPos ?? null,
+        imageThumbTop: abs(item.imageThumbTop),
+        imageThumbCenter: abs(item.imageThumbCenter),
+        imageThumbBottom: abs(item.imageThumbBottom),
       };
     });
   } catch (error) {
