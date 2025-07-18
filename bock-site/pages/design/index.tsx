@@ -4,20 +4,17 @@ import { getDesignIntro, getDesignArticles } from "@/lib/design";
 
 export async function getStaticProps() {
   try {
-    const intro = await getDesignIntro(); // Trae /api/design-intro
-    const articles = await getDesignArticles(); // Trae /api/designs
+    const intro = await getDesignIntro();
+    const articles = await getDesignArticles();
 
     return {
       props: {
-        initialData: {
-          intro,
-          articles,
-        },
+        initialData: { intro, articles },
       },
       revalidate: 60,
     };
   } catch (error) {
-    console.error("Error in getStaticProps for /design:", error);
+    // fallback mínimo
     return {
       props: {
         initialData: {

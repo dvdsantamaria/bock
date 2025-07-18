@@ -64,10 +64,7 @@ export default function DesignSection({
     (active?.imageFull ?? null) ||
     (active ? pickThumb(active) : null);
 
-  const thumb = active ? pickThumb(active) : null; // usado solo en portada sin slug si querés
-
-  /* ---------- submenú ---------- */
-  const subMenuItems = data.map((d) => d.title);
+  const thumb = active ? pickThumb(active) : null; // usado sólo en portada sin slug si querés
 
   return (
     <>
@@ -75,7 +72,8 @@ export default function DesignSection({
         <title>{active?.title || "Design"}</title>
       </Head>
 
-      <MainLayout section="about" subMenuItems={["", "", ""]} theme={theme}>
+      {/* ← FIX: sección correcta ("design" en lugar de "about") */}
+      <MainLayout section="design" subMenuItems={["", "", ""]} theme={theme}>
         <AnimatePresence mode="wait">
           <motion.div
             key={slug ?? "design-intro"}
