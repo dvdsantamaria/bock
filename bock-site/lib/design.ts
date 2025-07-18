@@ -5,7 +5,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 const normalize = <T = any>(v: T | undefined): T | null =>
   v === undefined ? null : v;
 
-export interface Design {
+export interface Article {
   id: number;
   title: string;
   subtitle?: string | null;
@@ -31,7 +31,7 @@ export const getDesignIntro = async (): Promise<Intro> => {
   try {
     const res = await fetch(`${API}/api/design-intro?populate=*`);
     const json = await res.json();
-    const attr = json?.data ?? {};
+    const attr = json?.data?.attributes ?? json?.data ?? {};
 
     return {
       title: attr.title || "Design",
@@ -45,7 +45,7 @@ export const getDesignIntro = async (): Promise<Intro> => {
   }
 };
 
-export const getDesignArticles = async (): Promise<Design[]> => {
+export const getDesignArticles = async (): Promise<Article[]> => {
   try {
     const res = await fetch(
       `${API}/api/designs?populate=*&pagination[pageSize]=100`
@@ -54,8 +54,8 @@ export const getDesignArticles = async (): Promise<Design[]> => {
 
     const list = Array.isArray(json.data) ? json.data : [];
 
-    return list.map((item: any): Design => {
-      const attr = item ?? {};
+    return list.map((item: any): Article => {
+      const attr = item?.attributes ?? item ?? {};
 
       return {
         id: item.id,
@@ -64,27 +64,22 @@ export const getDesignArticles = async (): Promise<Design[]> => {
         body: Array.isArray(attr.body) ? attr.body : attr.content ?? [],
         slug: attr.slug || `no-slug-${item.id}`,
         thumbPos: attr.thumbPos ?? null,
-        imageWatermarked:
-          typeof attr.imageWatermarked === "string"
-            ? attr.imageWatermarked
-            : attr.imageWatermarked?.url || null,
-        imageThumbTop:
-          typeof attr.imageThumbTop === "string"
-            ? attr.imageThumbTop
-            : attr.imageThumbTop?.url || null,
-        imageThumbCenter:
-          typeof attr.imageThumbCenter === "string"
-            ? attr.imageThumbCenter
-            : attr.imageThumbCenter?.url || null,
-        imageThumbBottom:
-          typeof attr.imageThumbBottom === "string"
-            ? attr.imageThumbBottom
-            : attr.imageThumbBottom?.url || null,
-        imageThumb: attr.imageThumb?.url || null,
-        imageFull:
-          typeof attr.imageFull === "string"
-            ? attr.imageFull
-            : attr.imageFull?.url || null,
+        imageWatermarked: attr.imageWatermarked?.url
+          ? `${API}${attr.imageWatermarked.url}`
+          : null,
+        imageThumbTop: attr.imageThumbTop?.url
+          ? `${API}${attr.imageThumbTop.url}`
+          : null,
+        imageThumbCenter: attr.imageThumbCenter?.url
+          ? `${API}${attr.imageThumbCenter.url}`
+          : null,
+        imageThumbBottom: attr.imageThumbBottom?.url
+          ? `${API}${attr.imageThumbBottom.url}`
+          : null,
+        imageThumb: attr.imageThumb?.url
+          ? `${API}${attr.imageThumb.url}`
+          : null,
+        imageFull: attr.imageFull?.url ? `${API}${attr.imageFull.url}` : null,
       };
     });
   } catch (err) {
