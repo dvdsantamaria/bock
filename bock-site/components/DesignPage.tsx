@@ -80,41 +80,6 @@ export default function DesignSection({
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
-            {!slug && (
-              <div className="col-span-8 mb-8">
-                {thumb ? (
-                  <img
-                    src={thumb}
-                    alt="Thumbnail"
-                    className="w-full max-w-[900px] object-cover rounded-md border border-gray-300"
-                    loading="lazy"
-                  />
-                ) : (
-                  <>
-                    <h1 className="text-3xl font-semibold mb-4">
-                      {intro.title}
-                    </h1>
-                    {intro.body && Array.isArray(intro.body) ? (
-                      intro.body.slice(0, 1).map((b: any, i: number) =>
-                        b.type === "paragraph" ? (
-                          <p key={i} className="text-gray-700">
-                            {b.children?.map((c: any, j: number) => (
-                              <span key={j}>{c.text}</span>
-                            ))}
-                          </p>
-                        ) : null
-                      )
-                    ) : (
-                      <p className="text-gray-700">
-                        Explore a selection of design projects and visual
-                        compositions.
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-
             {related.length > 0 && (
               <div className="col-span-8 md:hidden px-4 pt-4">
                 <details className="border border-gray-300 rounded-md bg-white">
