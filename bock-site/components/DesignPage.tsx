@@ -6,7 +6,7 @@ import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import type { Design as DesignArticle } from "@/lib/design";
+import type { Intro, Design } from "@/lib/design";
 
 /* ---------- tema local ---------- */
 const theme: Record<string, string> = {
@@ -19,19 +19,19 @@ const theme: Record<string, string> = {
 };
 
 type DesignSectionProps = {
-  /** Lista de diseños (artículos) ya normalizados desde lib/design. */
-  initialData: DesignArticle[];
-  /** Slug inicial opcional cuando se renderiza en páginas estáticas. */
+  initialData: { intro: Intro; articles: Design[] };
   initialSlug?: string;
 };
 
 /** Devuelve el thumb correcto según thumbPos (o fallback a imageThumb legacy). */
-const pickThumb = (a: DesignArticle): string | null => {
-  const pos = a.thumbPos ?? "center";
+const pickThumb = (a: Partial<Design>): string | null => {
+  if (!("thumbPos" in a)) return null;
+
+  const pos = (a.thumbPos ?? "center") as "top" | "center" | "bottom";
   const key = `imageThumb${pos[0].toUpperCase()}${pos.slice(
     1
-  )}` as keyof DesignArticle;
-  return (a[key] as string | null) ?? a.imageThumb ?? null;
+  )}` as keyof Design;
+  return (a as any)[key] ?? (a as any).imageThumb ?? null;
 };
 
 export default function DesignSection({
@@ -40,8 +40,8 @@ export default function DesignSection({
 }: DesignSectionProps) {
   const { query } = useRouter();
   const slug = (initialSlug ?? query.slug) as string | undefined;
+  const { intro, articles } = initialData;
 
-  /* ---------- set CSS vars ---------- */
   useEffect(() => {
     const root = document.documentElement;
     Object.entries(theme).forEach(([k, v]) =>
@@ -51,28 +51,25 @@ export default function DesignSection({
       Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
-  /* ---------- activo & relacionados ---------- */
-  const data = Array.isArray(initialData) ? initialData : [];
-  const active =
-    (slug && data.find((a) => a.slug === slug)) ||
-    (data.length ? data[0] : null);
-  const related = active ? data.filter((a) => a.slug !== active.slug) : data;
+  const active = slug ? articles.find((a) => a.slug === slug) ?? intro : intro;
 
-  /* ---------- imágenes ---------- */
+  const related =
+    active === intro ? articles : articles.filter((a) => a.slug !== slug);
+
   const hero =
-    (active?.imageWatermarked ?? null) ||
-    (active?.imageFull ?? null) ||
-    (active ? pickThumb(active) : null);
+    ("imageWatermarked" in active && active.imageWatermarked) ||
+    ("imageFull" in active && active.imageFull) ||
+    ("heroImage" in active && active.heroImage) ||
+    null;
 
-  const thumb = active ? pickThumb(active) : null; // usado sólo en portada sin slug si querés
+  const thumb = pickThumb(active) || intro.heroImage || null;
 
   return (
     <>
       <Head>
-        <title>{active?.title || "Design"}</title>
+        <title>{active.title || "Design"}</title>
       </Head>
 
-      {/* ← FIX: sección correcta ("design" en lugar de "about") */}
       <MainLayout section="design" subMenuItems={["", "", ""]} theme={theme}>
         <AnimatePresence mode="wait">
           <motion.div
@@ -83,19 +80,41 @@ export default function DesignSection({
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
-            {/* ► Thumb / encabezado si no hay slug */}
-            {!slug && active && thumb && (
+            {!slug && (
               <div className="col-span-8 mb-8">
-                <img
-                  src={thumb}
-                  alt={active.title}
-                  className="w-full max-w-[900px] object-cover rounded-md border border-gray-300"
-                  loading="lazy"
-                />
+                {thumb ? (
+                  <img
+                    src={thumb}
+                    alt="Thumbnail"
+                    className="w-full max-w-[900px] object-cover rounded-md border border-gray-300"
+                    loading="lazy"
+                  />
+                ) : (
+                  <>
+                    <h1 className="text-3xl font-semibold mb-4">
+                      {intro.title}
+                    </h1>
+                    {intro.body && Array.isArray(intro.body) ? (
+                      intro.body.slice(0, 1).map((b: any, i: number) =>
+                        b.type === "paragraph" ? (
+                          <p key={i} className="text-gray-700">
+                            {b.children?.map((c: any, j: number) => (
+                              <span key={j}>{c.text}</span>
+                            ))}
+                          </p>
+                        ) : null
+                      )
+                    ) : (
+                      <p className="text-gray-700">
+                        Explore a selection of design projects and visual
+                        compositions.
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
-            {/* ► menú desplegable mobile */}
             {related.length > 0 && (
               <div className="col-span-8 md:hidden px-4 pt-4">
                 <details className="border border-gray-300 rounded-md bg-white">
@@ -118,9 +137,8 @@ export default function DesignSection({
               </div>
             )}
 
-            {/* ► main article */}
             <article className="col-start-1 md:col-start-3 col-span-8 md:col-span-7 text-black p-6 md:p-10 space-y-6">
-              {slug && active && hero && (
+              {slug && hero && (
                 <img
                   src={hero}
                   alt={active.title}
@@ -132,34 +150,26 @@ export default function DesignSection({
                 <hr className="border-t-4 border-[var(--accent)] my-6 w-1/2" />
               )}
 
-              {active && (
-                <>
-                  <h1 className="text-3xl font-semibold">{active.title}</h1>
-                  {active.subtitle && (
-                    <p className="italic text-gray-500">{active.subtitle}</p>
-                  )}
-
-                  {/* body */}
-                  {Array.isArray(active.body)
-                    ? active.body.map((block: any, i: number) =>
-                        block.type === "paragraph" ? (
-                          <p key={i}>
-                            {block.children?.map((child: any, j: number) => (
-                              <span key={j}>{child.text}</span>
-                            ))}
-                          </p>
-                        ) : null
-                      )
-                    : typeof active.body === "string"
-                    ? active.body
-                        .split("\n\n")
-                        .map((p: string, i: number) => <p key={i}>{p}</p>)
-                    : null}
-                </>
+              <h1 className="text-3xl font-semibold">{active.title}</h1>
+              {"subtitle" in active && active.subtitle && (
+                <p className="italic text-gray-500">{active.subtitle}</p>
               )}
+
+              {Array.isArray(active.body)
+                ? active.body.map((block: any, i: number) =>
+                    block.type === "paragraph" ? (
+                      <p key={i}>
+                        {block.children?.map((child: any, j: number) => (
+                          <span key={j}>{child.text}</span>
+                        ))}
+                      </p>
+                    ) : null
+                  )
+                : typeof active.body === "string"
+                ? active.body.split("\n\n").map((p, i) => <p key={i}>{p}</p>)
+                : null}
             </article>
 
-            {/* ► aside desktop */}
             {related.length > 0 && (
               <aside className="hidden md:block col-start-10 col-span-2 md:pt-[42px]">
                 <h3
@@ -170,7 +180,7 @@ export default function DesignSection({
                 </h3>
                 <ul className="space-y-4">
                   {related.map((r) => {
-                    const thumbR = pickThumb(r);
+                    const thumbR = pickThumb(r) || r.imageThumb || null;
                     return (
                       <li key={r.slug}>
                         <Link

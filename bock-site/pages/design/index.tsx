@@ -1,11 +1,12 @@
 /* pages/design/index.tsx */
 import dynamic from "next/dynamic";
+import type { Intro, Design } from "@/lib/design";
 import { getDesignIntro, getDesignArticles } from "@/lib/design";
 
 export async function getStaticProps() {
   try {
-    const intro = await getDesignIntro();
-    const articles = await getDesignArticles();
+    const intro: Intro = await getDesignIntro();
+    const articles: Design[] = await getDesignArticles();
 
     return {
       props: {
@@ -14,7 +15,6 @@ export async function getStaticProps() {
       revalidate: 60,
     };
   } catch (error) {
-    // fallback mínimo
     return {
       props: {
         initialData: {
@@ -36,6 +36,10 @@ const DesignPage = dynamic(() => import("@/components/DesignPage"), {
   ssr: false,
 });
 
-export default function DesignIndex({ initialData }: any) {
+export default function DesignIndex({
+  initialData,
+}: {
+  initialData: { intro: Intro; articles: Design[] };
+}) {
   return <DesignPage initialData={initialData} />;
 }
