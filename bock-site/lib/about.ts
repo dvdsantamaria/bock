@@ -1,11 +1,6 @@
-// lib/design.ts
+// lib/about.ts
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
-
-const normalize = <T = any>(v: T | undefined): T | null =>
-  v === undefined ? null : v;
-
-export interface Design {
+export interface Article {
   id: number;
   title: string;
   subtitle?: string | null;
@@ -27,33 +22,38 @@ export interface Intro {
   heroImage?: string | null;
 }
 
-export const getDesignIntro = async (): Promise<Intro> => {
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+
+const normalize = <T = any>(v: T | undefined): T | null =>
+  v === undefined ? null : v;
+
+export const getAboutIntro = async (): Promise<Intro> => {
   try {
-    const res = await fetch(`${API}/api/design-intro?populate=*`);
+    const res = await fetch(`${API}/api/about-intro?populate=*`);
     const json = await res.json();
     const attr = json?.data?.attributes ?? json?.data ?? {};
 
     return {
-      title: attr.title || "Design",
+      title: attr.title || "About",
       subtitle: normalize(attr.subtitle),
       body: attr.content || [],
       heroImage: attr.heroImage?.url ? `${API}${attr.heroImage.url}` : null,
     };
   } catch (err) {
-    console.error("Error fetching design intro:", err);
-    return { title: "Design", subtitle: null, body: null, heroImage: null };
+    console.error("Error fetching about intro:", err);
+    return { title: "About", subtitle: null, body: null, heroImage: null };
   }
 };
 
-export const getDesignArticles = async (): Promise<Design[]> => {
+export const getAboutArticles = async (): Promise<Article[]> => {
   try {
     const res = await fetch(
-      `${API}/api/designs?populate=*&pagination[pageSize]=100`
+      `${API}/api/abouts?populate=*&pagination[pageSize]=100`
     );
     const json = await res.json();
     const list = Array.isArray(json.data) ? json.data : [];
 
-    return list.map((item: any): Design => {
+    return list.map((item: any): Article => {
       const attr = item?.attributes ?? item ?? {};
 
       return {
@@ -87,12 +87,12 @@ export const getDesignArticles = async (): Promise<Design[]> => {
       };
     });
   } catch (err) {
-    console.error("Error fetching design articles:", err);
+    console.error("Error fetching about articles:", err);
     return [];
   }
 };
 
-export const getDesignSlugs = async (): Promise<string[]> => {
-  const articles = await getDesignArticles();
+export const getAboutSlugs = async (): Promise<string[]> => {
+  const articles = await getAboutArticles();
   return articles.map((a) => a.slug);
 };
