@@ -1,3 +1,4 @@
+// components/DesignPage.tsx
 import React, { useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -30,23 +31,21 @@ type RichTextBlock = {
   children?: RichTextChild[];
 };
 
+const pickThumb = (a: Partial<Design>): string | null => {
+  const pos = (a.thumbPos ?? "center") as "top" | "center" | "bottom";
+  const key = `imageThumb${pos[0].toUpperCase()}${pos.slice(1)}` as const;
+  return (a as any)[key] ?? null;
+};
+
 export default function DesignPage({ initialData, initialSlug }: Props) {
   const { query } = useRouter();
-  const routerSlug = query.slug as string | undefined;
-  const slug = initialSlug ?? routerSlug;
+  const slug = (initialSlug ?? query.slug) as string | undefined;
 
   const data = Array.isArray(initialData) ? initialData : [];
-
   const active = slug ? data.find((a) => a.slug === slug) : data[0];
-
-  const related = data.filter((a) => a.slug !== active?.slug);
-
-  const imageThumb =
-    active?.thumbPos === "top"
-      ? active.imageThumbTop
-      : active?.thumbPos === "bottom"
-      ? active.imageThumbBottom
-      : active?.imageThumbCenter;
+  const related = active ? data.filter((a) => a.slug !== active.slug) : [];
+  const hero = active?.imageWatermarked || null;
+  const thumb = pickThumb(active || {}) || null;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -57,10 +56,21 @@ export default function DesignPage({ initialData, initialSlug }: Props) {
       Object.keys(theme).forEach((k) => root.style.removeProperty(`--${k}`));
   }, []);
 
+  if (!active || !active.title) {
+    return (
+      <MainLayout section="design" subMenuItems={["", "", ""]} theme={theme}>
+        <div className="text-white p-10">
+          <h1 className="text-2xl">No design entry found.</h1>
+        </div>
+        <Footer />
+      </MainLayout>
+    );
+  }
+
   return (
     <>
       <Head>
-        <title>{active?.title || "Design"}</title>
+        <title>{active.title || "Design"}</title>
       </Head>
 
       <MainLayout section="design" subMenuItems={["", "", ""]} theme={theme}>
@@ -73,32 +83,54 @@ export default function DesignPage({ initialData, initialSlug }: Props) {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="col-span-8 md:col-span-12 grid grid-cols-8 md:grid-cols-12 gap-x-4"
           >
-            <article className="col-start-1 md:col-start-3 col-span-8 md:col-span-7 text-white p-6 md:p-10 space-y-6">
-              {active?.imageWatermarked && (
+            {/* ► Thumb SOLO en default (sin slug) */}
+            {!slug && thumb && (
+              <div className="col-span-8 mb-8">
                 <img
-                  src={active.imageWatermarked}
+                  src={thumb}
+                  alt="Thumbnail"
+                  className="w-full max-w-[900px] object-cover rounded-md border border-gray-300"
+                  loading="lazy"
+                />
+              </div>
+            )}
+
+            {/* ► Main article */}
+            <article className="col-start-1 md:col-start-3 col-span-8 md:col-span-7 text-white p-6 md:p-10 space-y-6">
+              {slug && hero && (
+                <img
+                  src={hero}
                   alt={active.title}
                   className="w-full rounded-md border border-gray-300 object-cover"
                 />
               )}
 
-              <hr className="border-t-4 border-[var(--accent)] my-6 w-1/2" />
-              <h1 className="text-3xl font-semibold">{active?.title}</h1>
+              {slug && (
+                <hr className="border-t-4 border-[var(--accent)] my-6 w-1/2" />
+              )}
 
-              {Array.isArray(active?.body) &&
-                active.body.map((block: RichTextBlock, i: number) =>
-                  block.type === "paragraph" ? (
-                    <p key={i}>
-                      {block.children?.map(
-                        (child: RichTextChild, j: number) => (
+              <h1 className="text-3xl font-semibold">{active.title}</h1>
+              {"subtitle" in active && active.subtitle && (
+                <p className="italic text-gray-400">{active.subtitle}</p>
+              )}
+
+              {/* Body content */}
+              {Array.isArray(active.body)
+                ? active.body.map((block: RichTextBlock, i: number) =>
+                    block.type === "paragraph" ? (
+                      <p key={i}>
+                        {block.children?.map((child, j) => (
                           <span key={j}>{child.text}</span>
-                        )
-                      )}
-                    </p>
-                  ) : null
-                )}
+                        ))}
+                      </p>
+                    ) : null
+                  )
+                : typeof active.body === "string"
+                ? active.body.split("\n\n").map((p, i) => <p key={i}>{p}</p>)
+                : null}
             </article>
 
+            {/* ► Related articles */}
             {related.length > 0 && (
               <aside className="hidden md:block col-start-10 col-span-2 md:pt-[42px]">
                 <h3
@@ -109,24 +141,19 @@ export default function DesignPage({ initialData, initialSlug }: Props) {
                 </h3>
                 <ul className="space-y-4">
                   {related.map((r) => {
-                    const thumb =
-                      r.thumbPos === "top"
-                        ? r.imageThumbTop
-                        : r.thumbPos === "bottom"
-                        ? r.imageThumbBottom
-                        : r.imageThumbCenter;
-
+                    const thumbR = pickThumb(r) || null;
                     return (
                       <li key={r.slug}>
                         <Link
                           href={`/design/${r.slug}`}
                           className="group block"
                         >
-                          {thumb && (
+                          {thumbR && (
                             <img
-                              src={thumb}
+                              src={thumbR}
                               alt={r.title}
                               className="w-full aspect-video object-cover rounded-md border border-gray-300 group-hover:border-[var(--accent)] transition"
+                              loading="lazy"
                             />
                           )}
                           <span className="mt-1 block text-xs leading-snug group-hover:text-[var(--accent)]">
