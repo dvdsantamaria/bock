@@ -1,22 +1,10 @@
-/* lib/design.ts */
+// lib/design.ts
+
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
-/* ── helpers ─────────────────────────────────────────────── */
 const normalize = <T = any>(v: T | undefined): T | null =>
   v === undefined ? null : v;
 
-/** Devuelve una URL válida tanto si `v` es string plano
- *  como si es un objeto media de Strapi (`{ url: "/..." }`)  */
-const url = (v?: string | { url?: string } | null) =>
-  typeof v === "string"
-    ? v
-    : v?.url
-    ? v.url.startsWith("http")
-      ? v.url
-      : `${API}${v.url}`
-    : null;
-
-/* ── tipos ──────────────────────────────────────────────── */
 export interface Design {
   id: number;
   title: string;
@@ -28,7 +16,7 @@ export interface Design {
   imageThumbTop?: string | null;
   imageThumbCenter?: string | null;
   imageThumbBottom?: string | null;
-  imageThumb?: string | null; // fallback legacy
+  imageThumb?: string | null;
   imageFull?: string | null;
 }
 
@@ -39,18 +27,17 @@ export interface Intro {
   heroImage?: string | null;
 }
 
-/* ── single type : /design-intro ─────────────────────────── */
 export const getDesignIntro = async (): Promise<Intro> => {
   try {
     const res = await fetch(`${API}/api/design-intro?populate=*`);
     const json = await res.json();
-    const attr = json?.data?.attributes ?? json?.data ?? {};
+    const attr = json?.data ?? {};
 
     return {
       title: attr.title || "Design",
       subtitle: normalize(attr.subtitle),
       body: attr.content || [],
-      heroImage: url(attr.heroImage),
+      heroImage: attr.heroImage?.url ? `${API}${attr.heroImage.url}` : null,
     };
   } catch (err) {
     console.error("Error fetching design intro:", err);
@@ -58,17 +45,17 @@ export const getDesignIntro = async (): Promise<Intro> => {
   }
 };
 
-/* ── collection type : /designs ──────────────────────────── */
 export const getDesignArticles = async (): Promise<Design[]> => {
   try {
     const res = await fetch(
       `${API}/api/designs?populate=*&pagination[pageSize]=100`
     );
     const json = await res.json();
+
     const list = Array.isArray(json.data) ? json.data : [];
 
     return list.map((item: any): Design => {
-      const attr = item?.attributes ?? item ?? {};
+      const attr = item ?? {};
 
       return {
         id: item.id,
@@ -76,22 +63,28 @@ export const getDesignArticles = async (): Promise<Design[]> => {
         subtitle: normalize(attr.subtitle),
         body: Array.isArray(attr.body) ? attr.body : attr.content ?? [],
         slug: attr.slug || `no-slug-${item.id}`,
-        thumbPos:
-          attr.thumbPos === "top" ||
-          attr.thumbPos === "bottom" ||
-          attr.thumbPos === "center"
-            ? attr.thumbPos
-            : "center",
-
-        /* nuevas URLs ya procesadas (string) */
-        imageWatermarked: url(attr.imageWatermarked),
-        imageThumbTop: url(attr.imageThumbTop),
-        imageThumbCenter: url(attr.imageThumbCenter),
-        imageThumbBottom: url(attr.imageThumbBottom),
-
-        /* compat. legacy */
-        imageThumb: url(attr.imageThumb),
-        imageFull: url(attr.imageFull),
+        thumbPos: attr.thumbPos ?? null,
+        imageWatermarked:
+          typeof attr.imageWatermarked === "string"
+            ? attr.imageWatermarked
+            : attr.imageWatermarked?.url || null,
+        imageThumbTop:
+          typeof attr.imageThumbTop === "string"
+            ? attr.imageThumbTop
+            : attr.imageThumbTop?.url || null,
+        imageThumbCenter:
+          typeof attr.imageThumbCenter === "string"
+            ? attr.imageThumbCenter
+            : attr.imageThumbCenter?.url || null,
+        imageThumbBottom:
+          typeof attr.imageThumbBottom === "string"
+            ? attr.imageThumbBottom
+            : attr.imageThumbBottom?.url || null,
+        imageThumb: attr.imageThumb?.url || null,
+        imageFull:
+          typeof attr.imageFull === "string"
+            ? attr.imageFull
+            : attr.imageFull?.url || null,
       };
     });
   } catch (err) {
@@ -100,5 +93,7 @@ export const getDesignArticles = async (): Promise<Design[]> => {
   }
 };
 
-export const getDesignSlugs = async () =>
-  (await getDesignArticles()).map((a) => a.slug);
+export const getDesignSlugs = async (): Promise<string[]> => {
+  const articles = await getDesignArticles();
+  return articles.map((a) => a.slug);
+};
