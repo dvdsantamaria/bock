@@ -1,11 +1,7 @@
 // pages/photography/index.tsx
 import { GetStaticProps } from "next";
-import dynamic from "next/dynamic";
+import PhotographyPage from "@/components/PhotographyPage";
 import { getPhotographyPhotos, PhotoItem } from "@/lib/photography";
-
-const PhotographyPage = dynamic(() => import("@/components/PhotographyPage"), {
-  ssr: false,
-});
 
 type PageProps = {
   initialData: {
