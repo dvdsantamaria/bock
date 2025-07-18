@@ -2,7 +2,7 @@
 import { GetStaticProps } from "next";
 import dynamic from "next/dynamic";
 import {
-  getAllPhotographies,
+  getPhotographyPhotos,
   PhotoItem,
   getCategories,
 } from "@/lib/photography";
@@ -23,7 +23,7 @@ export default function PhotographyHome({ initialData }: PageProps) {
 }
 
 export const getStaticProps: GetStaticProps = async () => {
-  const photos = await getAllPhotographies();
+  const photos = await getPhotographyPhotos();
   const intro = photos.length > 0 ? photos[0] : null;
 
   if (!intro) {
