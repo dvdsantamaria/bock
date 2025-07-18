@@ -6,7 +6,7 @@ import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { PhotoItem } from "@/lib/photography";
+import type { PhotoItem } from "@/lib/photography";
 
 /* ---------- tema ---------- */
 const theme = {
@@ -18,12 +18,12 @@ const theme = {
   sectionColor: "#cccccc",
 };
 
-type PhotographyPageProps = {
+interface PhotographyPageProps {
   initialData: {
     photos: PhotoItem[];
     intro: PhotoItem;
   };
-};
+}
 
 /* Helper para elegir el thumb correcto */
 const getThumb = (p: PhotoItem) =>
@@ -32,15 +32,6 @@ const getThumb = (p: PhotoItem) =>
     : p.thumbPos === "bottom"
     ? p.imageThumbBottom
     : p.imageThumbCenter ?? null;
-
-/* Tipado mínimo para los bloques rich-text que renderizamos */
-interface RichTextChild {
-  text: string;
-}
-interface RichTextBlock {
-  type: string;
-  children?: RichTextChild[];
-}
 
 export default function PhotographyPage({ initialData }: PhotographyPageProps) {
   const { query, replace } = useRouter();
@@ -108,7 +99,9 @@ export default function PhotographyPage({ initialData }: PhotographyPageProps) {
                   className="w-full max-h-[80vh] object-contain border border-gray-300 rounded-md"
                 />
               )}
-              <p className="italic text-gray-500">{active.title}</p>
+              {active.title && (
+                <p className="italic text-gray-500">{active.title}</p>
+              )}
             </article>
 
             {/* Tira de thumbs */}

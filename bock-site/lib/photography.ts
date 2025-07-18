@@ -7,8 +7,10 @@ const normalize = <T = any>(v: T | undefined): T | null =>
   v === undefined ? null : v;
 
 // Prefija la URL si empieza con "/"
-const url = (v?: { url?: string }) =>
+const abs = (v?: { url?: string }) =>
   v?.url && v.url.startsWith("/") ? `${API}${v.url}` : null;
+
+/* -------------------------- Tipos principales -------------------------- */
 
 export interface PhotoItem {
   id: number;
@@ -25,7 +27,29 @@ export interface PhotoItem {
   imageThumbBottom?: string | null;
 }
 
-export const getAllPhotographies = async (): Promise<PhotoItem[]> => {
+/* ------------------------- Intro global (fake) ------------------------- */
+
+export const getPhotographyIntro = async (): Promise<PhotoItem> => {
+  // Si más adelante querés que esto venga desde otro endpoint, se reemplaza
+  return {
+    id: 0,
+    title: "Photography",
+    subtitle: null,
+    body: null,
+    category: "intro",
+    slug: "intro",
+    imageThumb: null,
+    imageFull: null,
+    thumbPos: null,
+    imageThumbTop: null,
+    imageThumbCenter: null,
+    imageThumbBottom: null,
+  };
+};
+
+/* ---------------------------- Todas las fotos ---------------------------- */
+
+export const getPhotographyPhotos = async (): Promise<PhotoItem[]> => {
   try {
     const res = await fetch(
       `${API}/api/photographies?populate=*&pagination[pageSize]=200`
@@ -44,14 +68,12 @@ export const getAllPhotographies = async (): Promise<PhotoItem[]> => {
         body: normalize(attr.body),
         category: attr.Category?.data?.attributes?.slug || "uncategorised",
         slug: attr.slug || `no-slug-${item.id}`,
-        imageThumb: url(attr.imageThumb),
-        imageFull: url(attr.imageFull),
-
-        // NUEVOS CAMPOS 👇
+        imageThumb: abs(attr.imageThumb),
+        imageFull: abs(attr.imageFull),
         thumbPos: attr.thumbPos ?? null,
-        imageThumbTop: url(attr.imageThumbTop),
-        imageThumbCenter: url(attr.imageThumbCenter),
-        imageThumbBottom: url(attr.imageThumbBottom),
+        imageThumbTop: abs(attr.imageThumbTop),
+        imageThumbCenter: abs(attr.imageThumbCenter),
+        imageThumbBottom: abs(attr.imageThumbBottom),
       };
     });
   } catch (error) {
@@ -60,15 +82,17 @@ export const getAllPhotographies = async (): Promise<PhotoItem[]> => {
   }
 };
 
+/* ------------------------ Extras opcionales ------------------------ */
+
 export const getCategories = async (): Promise<string[]> => {
-  const photos = await getAllPhotographies();
+  const photos = await getPhotographyPhotos();
   return Array.from(new Set(photos.map((p) => p.category)));
 };
 
 export const getRandomPhotoForCategory = async (
   category: string
 ): Promise<PhotoItem | null> => {
-  const photos = await getAllPhotographies();
+  const photos = await getPhotographyPhotos();
   const filtered = photos.filter((p) => p.category === category);
   if (!filtered.length) return null;
   return filtered[Math.floor(Math.random() * filtered.length)];
@@ -77,6 +101,6 @@ export const getRandomPhotoForCategory = async (
 export const getPhotoBySlug = async (
   slug: string
 ): Promise<PhotoItem | null> => {
-  const photos = await getAllPhotographies();
+  const photos = await getPhotographyPhotos();
   return photos.find((p) => p.slug === slug) || null;
 };

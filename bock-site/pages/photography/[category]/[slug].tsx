@@ -2,9 +2,9 @@
 import { GetStaticPaths, GetStaticProps } from "next";
 import dynamic from "next/dynamic";
 import {
-  getAllPhotographies,
+  getPhotographyPhotos,
+  getPhotographyIntro,
   PhotoItem,
-  getPhotoBySlug,
 } from "@/lib/photography";
 
 const PhotographyPage = dynamic(() => import("@/components/PhotographyPage"), {
@@ -23,9 +23,9 @@ export default function PhotographyDetail({ initialData }: PageProps) {
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const photos = await getAllPhotographies();
+  const photos = await getPhotographyPhotos();
 
-  const paths = photos.map((photo) => ({
+  const paths = photos.map((photo: PhotoItem) => ({
     params: {
       category: photo.category,
       slug: photo.slug,
@@ -42,12 +42,11 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   const category = params?.category as string;
   const slug = params?.slug as string;
 
-  const photos = await getAllPhotographies();
-  const intro = photos.length > 0 ? photos[0] : null;
+  const photos = await getPhotographyPhotos();
+  const intro = await getPhotographyIntro();
 
-  // Verificar que la foto existe
   const photoExists = photos.some(
-    (p) => p.slug === slug && p.category === category
+    (p: PhotoItem) => p.slug === slug && p.category === category
   );
 
   if (!photoExists || !intro) {
@@ -61,6 +60,6 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         intro,
       },
     },
-    revalidate: 60, // ISR cada 60 segundos
+    revalidate: 60,
   };
 };
