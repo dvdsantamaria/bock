@@ -146,6 +146,17 @@ export default function DesignSection({
                 />
               )}
 
+              {!slug && thumb && (
+                <div className="col-span-8 mb-8">
+                  <img
+                    src={thumb}
+                    alt="Thumbnail"
+                    className="w-full max-w-[900px] object-cover rounded-md border border-gray-300"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+
               {Array.isArray(active.body)
                 ? active.body.map((block: any, i: number) =>
                     block.type === "paragraph" ? (
