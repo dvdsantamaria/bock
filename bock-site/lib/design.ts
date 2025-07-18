@@ -51,6 +51,7 @@ export const getDesignArticles = async (): Promise<Design[]> => {
       `${API}/api/designs?populate=*&pagination[pageSize]=100`
     );
     const json = await res.json();
+
     const list = Array.isArray(json.data) ? json.data : [];
 
     return list.map((item: any): Design => {
@@ -63,10 +64,18 @@ export const getDesignArticles = async (): Promise<Design[]> => {
         body: Array.isArray(attr.body) ? attr.body : attr.content ?? [],
         slug: attr.slug || `no-slug-${item.id}`,
         thumbPos: attr.thumbPos ?? null,
-        imageWatermarked: attr.imageWatermarked ?? null,
-        imageThumbTop: attr.imageThumbTop ?? null,
-        imageThumbCenter: attr.imageThumbCenter ?? null,
-        imageThumbBottom: attr.imageThumbBottom ?? null,
+        imageWatermarked: attr.imageWatermarked?.url
+          ? `${API}${attr.imageWatermarked.url}`
+          : null,
+        imageThumbTop: attr.imageThumbTop?.url
+          ? `${API}${attr.imageThumbTop.url}`
+          : null,
+        imageThumbCenter: attr.imageThumbCenter?.url
+          ? `${API}${attr.imageThumbCenter.url}`
+          : null,
+        imageThumbBottom: attr.imageThumbBottom?.url
+          ? `${API}${attr.imageThumbBottom.url}`
+          : null,
         imageThumb: attr.imageThumb?.url
           ? `${API}${attr.imageThumb.url}`
           : null,

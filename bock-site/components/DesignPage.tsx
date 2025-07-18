@@ -1,5 +1,3 @@
-// components/DesignPage.tsx
-
 import React, { useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -37,11 +35,11 @@ export default function DesignPage({ initialData, initialSlug }: Props) {
   const routerSlug = query.slug as string | undefined;
   const slug = initialSlug ?? routerSlug;
 
-  const active = slug
-    ? initialData.find((a) => a.slug === slug)
-    : initialData[0];
+  const data = Array.isArray(initialData) ? initialData : [];
 
-  const related = initialData.filter((a) => a.slug !== active?.slug);
+  const active = slug ? data.find((a) => a.slug === slug) : data[0];
+
+  const related = data.filter((a) => a.slug !== active?.slug);
 
   const imageThumb =
     active?.thumbPos === "top"
@@ -87,15 +85,18 @@ export default function DesignPage({ initialData, initialSlug }: Props) {
               <hr className="border-t-4 border-[var(--accent)] my-6 w-1/2" />
               <h1 className="text-3xl font-semibold">{active?.title}</h1>
 
-              {active?.body?.map((block: RichTextBlock, i: number) =>
-                block.type === "paragraph" ? (
-                  <p key={i}>
-                    {block.children?.map((child: RichTextChild, j: number) => (
-                      <span key={j}>{child.text}</span>
-                    ))}
-                  </p>
-                ) : null
-              )}
+              {Array.isArray(active?.body) &&
+                active.body.map((block: RichTextBlock, i: number) =>
+                  block.type === "paragraph" ? (
+                    <p key={i}>
+                      {block.children?.map(
+                        (child: RichTextChild, j: number) => (
+                          <span key={j}>{child.text}</span>
+                        )
+                      )}
+                    </p>
+                  ) : null
+                )}
             </article>
 
             {related.length > 0 && (
