@@ -1,5 +1,10 @@
 // lib/about.ts
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
 
+const normalize = <T = any>(v: T | undefined): T | null =>
+  v === undefined ? null : v;
+
+/* ---------- tipos ---------- */
 export interface Article {
   id: number;
   title: string;
@@ -22,11 +27,16 @@ export interface Intro {
   heroImage?: string | null;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:1337";
+/* ---------- helper ---------- */
+const toUrl = (v: any): string | null => {
+  if (!v) return null;
+  if (typeof v === "string") return v; // ya es una URL absoluta
+  if (typeof v === "object" && typeof v.url === "string")
+    return v.url.startsWith("/") ? `${API}${v.url}` : v.url;
+  return null;
+};
 
-const normalize = <T = any>(v: T | undefined): T | null =>
-  v === undefined ? null : v;
-
+/* ---------- single type ---------- */
 export const getAboutIntro = async (): Promise<Intro> => {
   try {
     const res = await fetch(`${API}/api/about-intro?populate=*`);
@@ -37,7 +47,7 @@ export const getAboutIntro = async (): Promise<Intro> => {
       title: attr.title || "About",
       subtitle: normalize(attr.subtitle),
       body: attr.content || [],
-      heroImage: attr.heroImage?.url ? `${API}${attr.heroImage.url}` : null,
+      heroImage: toUrl(attr.heroImage),
     };
   } catch (err) {
     console.error("Error fetching about intro:", err);
@@ -45,6 +55,7 @@ export const getAboutIntro = async (): Promise<Intro> => {
   }
 };
 
+/* ---------- collection type ---------- */
 export const getAboutArticles = async (): Promise<Article[]> => {
   try {
     const res = await fetch(
@@ -68,22 +79,12 @@ export const getAboutArticles = async (): Promise<Article[]> => {
           attr.thumbPos === "bottom"
             ? attr.thumbPos
             : "center",
-        imageWatermarked: attr.imageWatermarked?.url
-          ? `${API}${attr.imageWatermarked.url}`
-          : null,
-        imageThumbTop: attr.imageThumbTop?.url
-          ? `${API}${attr.imageThumbTop.url}`
-          : null,
-        imageThumbCenter: attr.imageThumbCenter?.url
-          ? `${API}${attr.imageThumbCenter.url}`
-          : null,
-        imageThumbBottom: attr.imageThumbBottom?.url
-          ? `${API}${attr.imageThumbBottom.url}`
-          : null,
-        imageThumb: attr.imageThumb?.url
-          ? `${API}${attr.imageThumb.url}`
-          : null,
-        imageFull: attr.imageFull?.url ? `${API}${attr.imageFull.url}` : null,
+        imageWatermarked: toUrl(attr.imageWatermarked),
+        imageThumbTop: toUrl(attr.imageThumbTop),
+        imageThumbCenter: toUrl(attr.imageThumbCenter),
+        imageThumbBottom: toUrl(attr.imageThumbBottom),
+        imageThumb: toUrl(attr.imageThumb),
+        imageFull: toUrl(attr.imageFull),
       };
     });
   } catch (err) {
