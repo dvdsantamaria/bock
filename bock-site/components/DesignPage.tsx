@@ -146,15 +146,6 @@ export default function DesignSection({
                 />
               )}
 
-              {slug && (
-                <hr className="border-t-4 border-[var(--accent)] my-6 w-1/2" />
-              )}
-
-              <h1 className="text-3xl font-semibold">{active.title}</h1>
-              {"subtitle" in active && active.subtitle && (
-                <p className="italic text-gray-500">{active.subtitle}</p>
-              )}
-
               {Array.isArray(active.body)
                 ? active.body.map((block: any, i: number) =>
                     block.type === "paragraph" ? (

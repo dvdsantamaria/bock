@@ -1,44 +1,54 @@
-// pages/design/[slug].tsx
+import type { GetStaticPaths, GetStaticProps } from "next";
+import DesignPage from "@/components/DesignPage";
+import {
+  getDesignIntro,
+  getDesignArticles,
+  getDesignSlugs,
+} from "@/lib/design";
+import type { Intro, Design } from "@/lib/design";
 
-import dynamic from "next/dynamic";
-import { getDesignArticles, getDesignSlugs } from "@/lib/design";
-
-export async function getStaticPaths() {
-  try {
-    const slugs = await getDesignSlugs();
-    return {
-      paths: slugs.map((slug) => ({ params: { slug } })),
-      fallback: "blocking",
-    };
-  } catch {
-    return { paths: [], fallback: "blocking" };
-  }
+interface Props {
+  initialData: {
+    intro: Intro;
+    articles: Design[];
+  };
+  slug: string;
 }
 
-export async function getStaticProps({ params }: any) {
-  try {
-    const slug = params.slug;
-    const articles = await getDesignArticles();
+export const getStaticPaths: GetStaticPaths = async () => {
+  const slugs = await getDesignSlugs();
 
-    const isValidSlug = articles.some((a) => a.slug === slug);
-    if (!isValidSlug) return { notFound: true };
+  const paths = slugs.map((slug) => ({
+    params: { slug },
+  }));
+
+  return {
+    paths,
+    fallback: false,
+  };
+};
+
+export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
+  const slug = params?.slug as string;
+
+  try {
+    const intro = await getDesignIntro();
+    const articles = await getDesignArticles();
 
     return {
       props: {
-        initialData: articles,
-        initialSlug: slug,
+        initialData: { intro, articles },
+        slug,
       },
       revalidate: 60,
     };
-  } catch {
-    return { notFound: true };
+  } catch (err) {
+    return {
+      notFound: true,
+    };
   }
-}
+};
 
-const DesignSection = dynamic(() => import("@/components/DesignPage"), {
-  ssr: false,
-});
-
-export default function DesignSlug({ initialData, initialSlug }: any) {
-  return <DesignSection initialData={initialData} initialSlug={initialSlug} />;
+export default function DesignSlugPage({ initialData, slug }: Props) {
+  return <DesignPage initialData={initialData} initialSlug={slug} />;
 }
