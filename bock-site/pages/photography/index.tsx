@@ -1,14 +1,22 @@
-// pages/photography/index.tsx
+/* pages/photography/index.tsx */
 import { GetStaticProps } from "next";
-import PhotographyPage from "@/components/PhotographyPage";
-import { getPhotographyPhotos, PhotoItem } from "@/lib/photography";
+import dynamic from "next/dynamic";
+import {
+  getPhotographyPhotos,
+  PhotoItem,
+  getCategories,
+} from "@/lib/photography";
 
-type PageProps = {
+const PhotographyPage = dynamic(() => import("@/components/PhotographyPage"), {
+  ssr: false,
+});
+
+interface PageProps {
   initialData: {
     photos: PhotoItem[];
     intro: PhotoItem;
   };
-};
+}
 
 export default function PhotographyHome({ initialData }: PageProps) {
   return <PhotographyPage initialData={initialData} />;
@@ -16,16 +24,21 @@ export default function PhotographyHome({ initialData }: PageProps) {
 
 export const getStaticProps: GetStaticProps = async () => {
   const photos = await getPhotographyPhotos();
-  const intro = photos[0] ?? null;
+  const intro = photos.length > 0 ? photos[0] : null;
 
   if (!intro) {
-    return { notFound: true };
+    return {
+      notFound: true,
+    };
   }
 
   return {
     props: {
-      initialData: { photos, intro },
+      initialData: {
+        photos,
+        intro,
+      },
     },
-    revalidate: 60,
+    revalidate: 60, // ISR cada 60 segundos
   };
 };
