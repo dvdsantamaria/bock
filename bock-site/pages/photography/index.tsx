@@ -9,7 +9,7 @@ const PhotographyPage = dynamic(() => import("@/components/PhotographyPage"), {
 interface PageProps {
   initialData: {
     photos: PhotoItem[];
-    intro: PhotoItem | null; // ← ahora puede ser nulo
+    intro: PhotoItem | null;
   };
 }
 
@@ -24,7 +24,7 @@ export const getStaticProps: GetStaticProps = async () => {
 
     return {
       props: { initialData: { photos: photos ?? [], intro } },
-      revalidate: 60, // reintenta cada minuto
+      revalidate: 60,
     };
   } catch (err) {
     console.error("Photography getStaticProps", err);
