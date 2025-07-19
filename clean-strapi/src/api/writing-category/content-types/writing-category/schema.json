@@ -4,7 +4,7 @@
   "info": {
     "singularName": "writing-category",
     "pluralName": "writing-categories",
-    "displayName": "writing-category"
+    "displayName": "Writing Categories"
   },
   "options": {
     "draftAndPublish": true

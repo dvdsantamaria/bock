@@ -4,7 +4,7 @@
   "info": {
     "singularName": "about-intro",
     "pluralName": "about-intros",
-    "displayName": "about-intro"
+    "displayName": "About Intro"
   },
   "options": {
     "draftAndPublish": true
