@@ -46,10 +46,10 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   const intro = await getPhotographyIntro();
 
   const photoExists = photos.some(
-    (p: PhotoItem) => p.slug === slug && p.category === category
+    (p: PhotoItem) => p.category === category && p.slug === slug
   );
 
-  if (!photoExists || !intro) {
+  if (!photoExists) {
     return { notFound: true };
   }
 

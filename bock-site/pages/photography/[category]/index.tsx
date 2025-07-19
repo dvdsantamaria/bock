@@ -1,43 +1,48 @@
-/* pages/photography/[category]/index.tsx */
 import { GetStaticPaths, GetStaticProps } from "next";
-import {
-  getCategories,
-  getRandomPhotoForCategory,
-  getPhotographyPhotos,
-  PhotoItem,
-} from "@/lib/photography";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
+import { getCategories, getRandomPhotoForCategory } from "@/lib/photography";
 
-/* El componente no renderiza nada: la redirección se hace en getStaticProps */
-export default function PhotographyCategoryRedirect() {
+interface Props {
+  redirectSlug: string | null;
+}
+
+export default function PhotographyCategoryRedirect({ redirectSlug }: Props) {
+  const router = useRouter();
+  const category = router.query.category;
+
+  useEffect(() => {
+    if (redirectSlug && category) {
+      router.replace(`/photography/${category}/${redirectSlug}`);
+    }
+  }, [redirectSlug, category]);
+
   return null;
 }
 
 /* ---------- paths estáticos para todas las categorías ---------- */
 export const getStaticPaths: GetStaticPaths = async () => {
-  const categories = await getCategories(); // ["travel", "nature", ...]
+  const categories = await getCategories();
   return {
     paths: categories.map((c) => ({ params: { category: c } })),
-    fallback: "blocking", // ISR para nuevas categorías
+    fallback: "blocking",
   };
 };
 
-/* ---------- redirección al slug dentro de la categoría ---------- */
+/* ---------- devolvemos el slug para redirigir desde el cliente ---------- */
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const category = params?.category as string;
 
-  // 1) Buscamos fotos de esa categoría
   const randomPhoto = await getRandomPhotoForCategory(category);
 
-  // Si no existe la categoría (o no tiene fotos) -> 404
   if (!randomPhoto) {
     return { notFound: true };
   }
 
-  // 2) Redirigimos al slug dentro de la categoría
   return {
-    redirect: {
-      destination: `/photography/${category}/${randomPhoto.slug}`,
-      permanent: false,
+    props: {
+      redirectSlug: randomPhoto.slug,
     },
+    revalidate: 60,
   };
 };
