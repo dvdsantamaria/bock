@@ -18,10 +18,10 @@ const theme = {
   sectionColor: "#cccccc",
 };
 
-interface PhotographyPageProps {
+export interface PhotographyPageProps {
   initialData: {
     photos: PhotoItem[];
-    intro: PhotoItem;
+    intro: PhotoItem | null; // ahora puede ser null
   };
 }
 
@@ -60,7 +60,7 @@ export default function PhotographyPage({ initialData }: PhotographyPageProps) {
   const active =
     slug && photos.find((p) => p.slug === slug)
       ? (photos.find((p) => p.slug === slug) as PhotoItem)
-      : intro;
+      : intro ?? null;
 
   /* sub-menú */
   const categories = Array.from(new Set(photos.map((p) => p.category))).sort();
@@ -70,10 +70,21 @@ export default function PhotographyPage({ initialData }: PhotographyPageProps) {
     ? photos.filter((p) => p.category === category)
     : photos;
 
+  /* Si no hay data todavía, placeholder */
+  if (!active) {
+    return (
+      <MainLayout section="photography" subMenuItems={[]} theme={theme}>
+        <div className="p-10 text-center">
+          <p className="text-lg">Sin contenido disponible por ahora.</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <>
       <Head>
-        <title>{active.title}</title>
+        <title>{active.title || "Photography"}</title>
       </Head>
 
       <MainLayout
