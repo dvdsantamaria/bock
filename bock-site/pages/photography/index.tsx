@@ -1,11 +1,7 @@
 /* pages/photography/index.tsx */
 import { GetStaticProps } from "next";
 import dynamic from "next/dynamic";
-import {
-  getPhotographyPhotos,
-  PhotoItem,
-  getCategories,
-} from "@/lib/photography";
+import { getPhotographyPhotos, PhotoItem } from "@/lib/photography";
 
 const PhotographyPage = dynamic(() => import("@/components/PhotographyPage"), {
   ssr: false,
@@ -14,7 +10,7 @@ const PhotographyPage = dynamic(() => import("@/components/PhotographyPage"), {
 interface PageProps {
   initialData: {
     photos: PhotoItem[];
-    intro: PhotoItem;
+    intro: PhotoItem | null;
   };
 }
 
@@ -23,22 +19,29 @@ export default function PhotographyHome({ initialData }: PageProps) {
 }
 
 export const getStaticProps: GetStaticProps = async () => {
-  const photos = await getPhotographyPhotos();
-  const intro = photos.length > 0 ? photos[0] : null;
+  try {
+    const photos = await getPhotographyPhotos(); // pedido a Strapi
+    const intro = photos?.[0] ?? null; // primer foto o null
 
-  if (!intro) {
     return {
-      notFound: true,
+      props: {
+        initialData: {
+          photos: photos ?? [],
+          intro,
+        },
+      },
+      revalidate: 60, // reintenta cada 60 s
+    };
+  } catch (err) {
+    console.error("Photography getStaticProps", err);
+    return {
+      props: {
+        initialData: {
+          photos: [],
+          intro: null,
+        },
+      },
+      revalidate: 60, // intenta de nuevo al minuto
     };
   }
-
-  return {
-    props: {
-      initialData: {
-        photos,
-        intro,
-      },
-    },
-    revalidate: 60, // ISR cada 60 segundos
-  };
 };
