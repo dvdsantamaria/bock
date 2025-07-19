@@ -51,7 +51,6 @@ export const getPhotographyPhotos = async (): Promise<PhotoItem[]> => {
     const list = Array.isArray(json.data) ? json.data : [];
 
     return list.map((item: any): PhotoItem => {
-      // Strapi 4: atributos planos vienen en item (sin .attributes)
       const attr = item.attributes || item;
 
       return {
@@ -59,11 +58,15 @@ export const getPhotographyPhotos = async (): Promise<PhotoItem[]> => {
         title: attr.title || "Untitled",
         subtitle: normalize(attr.subtitle),
         body: normalize(attr.body),
-        category: attr.category?.slug || attr.category || "general",
+        category:
+          attr.Category?.slug ||
+          attr.Category?.name?.toLowerCase?.() ||
+          attr.category?.slug ||
+          attr.category ||
+          "general",
         slug: attr.slug || `no-slug-${item.id}`,
         thumbPos: attr.thumbPos ?? "center",
 
-        /* campos de imagen tal como los tenemos hoy */
         imageFull: attr.imageWatermarked ?? null,
         imageThumbTop: attr.imageThumbTop ?? null,
         imageThumbCenter: attr.imageThumbCenter ?? null,
