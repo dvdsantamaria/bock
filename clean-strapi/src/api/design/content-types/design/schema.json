@@ -4,7 +4,7 @@
   "info": {
     "singularName": "design",
     "pluralName": "designs",
-    "displayName": "Design"
+    "displayName": "design"
   },
   "options": {
     "draftAndPublish": true
