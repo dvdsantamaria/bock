@@ -1,4 +1,4 @@
-// pages/index.tsx — Home
+/* pages/index.tsx — Home */
 
 import { useEffect, useState } from "react";
 import Head from "next/head";
@@ -7,28 +7,33 @@ import MainLayout from "@/components/MainLayout";
 import Footer from "@/components/Footer";
 import TopStrokes from "@/components/TopStrokes";
 
-/* Importar funciones de API */
+/* Import helpers de API */
 import { getAboutArticles } from "@/lib/about";
 import { getDesignArticles } from "@/lib/design";
 import { getPhotographyPhotos } from "@/lib/photography";
-import { getWritingArticles } from "../lib/writing";
+import { getWritingArticles } from "@/lib/writing";
 
-/* helpers */
+/* utilidades */
 const toSlug = (s: string) =>
   s
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^\w-]/g, "");
 
-const sampleN = <T,>(arr: T[], n: number) =>
-  [...arr].sort(() => 0.5 - Math.random()).slice(0, n);
-
-type Thumb = { src: string; href: string; alt: string };
-
-// Normaliza rutas para imágenes
 const normalizeImagePath = (path?: string | null): string =>
   path?.startsWith("http") ? path : path ? `/${path.replace(/^\/+/, "")}` : "";
 
+/* ─── type helpers ─── */
+type Thumb = { src: string; href: string; alt: string };
+
+const sampleN = <T,>(arr: T[], n: number, hasImg: (item: T) => boolean) => {
+  const withImg = arr.filter(hasImg);
+  return [...withImg]
+    .sort(() => 0.5 - Math.random())
+    .slice(0, Math.min(n, withImg.length));
+};
+
+/* ─── props ─── */
 interface HomeProps {
   writingData: any[];
   photoData: any[];
@@ -36,44 +41,56 @@ interface HomeProps {
   aboutData: any[];
 }
 
+/* ─── componente ─── */
 export default function Home({
   writingData,
   photoData,
   designData,
   aboutData,
 }: HomeProps) {
+  /* links de Writing (solo texto) */
   const writingLinks = writingData.slice(0, 18).map((a) => ({
     label: a.title,
     href: `/writing/${a.category}/${a.slug}`,
   }));
 
+  /* thumbnails */
   const [photoThumbs, setPhotoThumbs] = useState<Thumb[]>([]);
   const [designThumbs, setDesignThumbs] = useState<Thumb[]>([]);
   const [pubThumbs, setPubThumbs] = useState<Thumb[]>([]);
 
   useEffect(() => {
+    /* PHOTOGRAPHY – usa imageThumbCenter o cualquier thumb que exista */
     setPhotoThumbs(
-      sampleN(photoData, 3).map((p) => ({
-        src: normalizeImagePath(p.imageThumb),
+      sampleN(
+        photoData,
+        3,
+        (p: any) => p.imageThumbCenter || p.imageThumbTop || p.imageThumbBottom
+      ).map((p: any) => ({
+        src: normalizeImagePath(
+          p.imageThumbCenter || p.imageThumbTop || p.imageThumbBottom
+        ),
         href: `/photography/${p.category}/${p.slug}`,
         alt: p.title,
       }))
     );
 
+    /* DESIGN – prioriza center > top > bottom > imageFull */
     setDesignThumbs(
-      sampleN(designData, 3).map((d) => {
-        let thumb;
-        switch (d.thumbPos) {
-          case "top":
-            thumb = d.imageThumbTop;
-            break;
-          case "bottom":
-            thumb = d.imageThumbBottom;
-            break;
-          default:
-            thumb = d.imageThumbCenter;
-        }
-
+      sampleN(
+        designData,
+        3,
+        (d: any) =>
+          d.imageThumbCenter ||
+          d.imageThumbTop ||
+          d.imageThumbBottom ||
+          d.imageFull
+      ).map((d: any) => {
+        const thumb =
+          d.imageThumbCenter ||
+          d.imageThumbTop ||
+          d.imageThumbBottom ||
+          d.imageFull;
         return {
           src: normalizeImagePath(thumb),
           href: `/design/${d.slug}`,
@@ -82,12 +99,15 @@ export default function Home({
       })
     );
 
+    /* PUBLICATIONS */
     setPubThumbs(
-      sampleN(aboutData, 3).map((p) => ({
-        src: normalizeImagePath(p.imageThumb),
-        href: `/about#${toSlug(p.title)}`,
-        alt: p.title,
-      }))
+      sampleN(aboutData, 3, (p: any) => p.imageThumb || p.imageFull).map(
+        (p: any) => ({
+          src: normalizeImagePath(p.imageThumb || p.imageFull),
+          href: `/about#${toSlug(p.title)}`,
+          alt: p.title,
+        })
+      )
     );
   }, [photoData, designData, aboutData]);
 
@@ -132,24 +152,22 @@ export default function Home({
   );
 }
 
+/* ─── getStaticProps ─── */
 export async function getStaticProps() {
-  const writingData = await getWritingArticles();
-  const photoData = await getPhotographyPhotos();
-  const designData = await getDesignArticles();
-  const aboutData = await getAboutArticles();
+  const [writingData, photoData, designData, aboutData] = await Promise.all([
+    getWritingArticles(),
+    getPhotographyPhotos(),
+    getDesignArticles(),
+    getAboutArticles(),
+  ]);
 
   return {
-    props: {
-      writingData,
-      photoData,
-      designData,
-      aboutData,
-    },
+    props: { writingData, photoData, designData, aboutData },
     revalidate: 60,
   };
 }
 
-/* ---------- helpers visuales ---------- */
+/* ─── helpers visuales ─── */
 function SectionHeading({ title }: { title: string }) {
   return (
     <h2
