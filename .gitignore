@@ -1,0 +1,32 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependency directories
+node_modules/
+.yarn/
+
+# Strapi build and temp files
+.cache/
+.tmp/
+build/
+
+# Env files
+.env
+.env.*
+
+# Database (local SQLite)
+*.db
+*.sqlite
+
+# OS metadata
+.DS_Store
+
+# Vercel / Netlify
+.vercel
+.netlify
+
+# Next.js
+.next/
+out/
